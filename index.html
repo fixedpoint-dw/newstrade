@@ -517,121 +517,169 @@ const STR = {
 en: {
   brand:"The Morning Wire", tagline:`Morning Paper Trader · ${INDEX_NAME} × Market Efficiency`,
   admin:"Admin", toStudent:"Player view",
-  demoBanner:["Demo mode","— Firebase not reachable. Scores stay in this browser only."],
+  demoBanner:["Demo mode","— Firebase not reachable. Class mode is unavailable; solo scores stay in this browser."],
   connecting:"Connecting…",
   lobbyTitle1:"Armed with only this morning's paper,", lobbyTitle2:`can you beat the ${INDEX_NAME}?`,
-  lobbyIntro:`Each round shows real pre-open macro headlines from a hidden past trading day. Decide whether the ${INDEX_NAME} rose or fell that day (open→close), and how much to bet. You compete against AI bots reading the same headlines.`,
+  lobbyIntro:`Each round shows real pre-open macro headlines from a hidden past trading day. Decide whether the ${INDEX_NAME} rose or fell that day (open→close), and how much to bet. You compete against classmates and AI bots reading the same headlines.`,
   kvCapital:"Starting capital", kvRounds:"Rounds", kvRoundsVal:n=>`${n} · no repeated days`,
   kvInfo:"Information market", kvInfoOn:p=>`Tomorrow's paper for ${p}`, kvInfoOff:"Off",
-  kvBots:"AI rivals", kvBotsNone:"None",
-  namePh:"Name or nickname", start:"Start trading",
+  kvBots:"AI benchmarks", kvBotsNone:"None",
+  namePh:"Name or nickname", joinClass:"Join class game", solo:"Solo practice",
   howto:"How to play (30 seconds)",
-  howto1:s=>`Read the headlines and choose ${s[0]} or ${s[1]}.`, long:"Long ▲", short:"Short ▼",
-  howto2:"Pick your bet size (0–100% of capital). Sitting out is a strategy too.",
+  howto1:"Read the headlines, then drag the position bar — right of center = long, left = short, center = sit out.", long:"Long", short:"Short",
+  howto2:"Distance from center = bet size. Past ±100% you are trading on margin (leverage).",
+  howtoLev:"Leverage cuts both ways: if your capital is wiped out you're eliminated — you keep watching the news and standings but can no longer bet. A 95% VaR estimate of your worst-day loss is shown as you drag.",
   howto3:p=>`Pay ${p} to peek at tomorrow's paper. Whether it's worth it — that's your call.`,
-  howto4:`Your P&L settles on the actual ${INDEX_NAME} return of that day. The bots' reasoning is revealed too.`,
-  lb:"Leaderboard", lbEmpty:"No records yet. Be the first trader.",
+  howto4:`Your P&L settles on the actual ${INDEX_NAME} return of that day. Bots' reasoning is revealed too.`,
+  lb:"All-time leaderboard", lbEmpty:"No records yet. Be the first trader.",
   disclaimer:`Educational simulation on real historical ${INDEX_NAME} data. Not investment advice.`,
+  dataWarn:"⚠ Headline data files not loaded — running on the built-in Korean sample. Check ④ Data files in Admin.",
   loginTitle:"Admin login", pw:"Password", pwWrong:"Wrong password.", back:"← Back",
   pwHint:"Change ADMIN_PASSCODE at the top of index.html.",
   online:"Live sync on", demoTag:"Demo mode", saved:"Saved ✓",
-  adminNote:"Changes apply to everyone instantly, starting from each player's next game.",
-  s1:"① AI rivals", s2:"② Information market", s2b:"(Grossman-Stiglitz)", s3:"③ Game rules", s4:"④ Data files", s5:"⑤ Leaderboard",
+  adminNote:"Settings save for everyone instantly. Game-rule changes apply from the next game.",
+  s0:"⓪ Live class game", s1:"① AI benchmarks", s2:"② Information market", s2b:"(Grossman-Stiglitz)",
+  s3:"③ Game rules", s4:"④ Data files", s5:"⑤ All-time leaderboard",
+  phaseName:{lobby:"Waiting room",betting:"Betting",reveal:"Results",finished:"Finished"},
+  stRound:(a,b)=>`Round ${a} / ${b}`, stPlayers:(n,m)=>`${n} in room · ${m} playing`,
+  turnSec:"Seconds per betting turn", startGame:"Start game", endTurn:"End turn now",
+  nextRound:"Next round →", endGame:"End game & save scores", resetRoom:"Reset room",
+  resetRoomC:"Reset the room? Capitals return to the start and everyone waits in the lobby.",
+  needPlayers:"Waiting for players to join…", colBet:"Bet",
+  noBet:"—", botsRow:"AI benchmark",
   rInfo:"Sell tomorrow's paper", rInfoD:"Players can pay to preview the next morning's headlines.",
   rPrice:"Price (KRW)", rPriceD:"Default ₩10,000 — roughly the expected profit of perfect foresight.",
   rReveal:"Reveal mode", rRevealD:"Includes market-wrap stories — effectively leaks the answer (insider experiment). Default: noisy.",
   rBotsBuy:"Bots may buy info", rBotsBuyD:"The advanced bot decides for itself via cost-benefit.",
-  rRounds:"Rounds per session", rRoundsD:n=>`Sampled without replacement from ${n} days.`,
+  rRounds:"Rounds per game", rRoundsD:n=>`Sampled without replacement from ${n} days.`,
   dataD:"Put game_database_en.json / game_database_ko.json next to index.html in the repo.",
   dataLoaded:n=>`loaded · ${n} days`, dataMissing:"not found → built-in sample", reload:"Reload files",
   lbReset:"Reset leaderboard", lbResetC:"Delete the entire leaderboard? This cannot be undone.",
+  waitTitle:"Waiting room", waitSub:"The host will start the game shortly. Read the briefing while you wait.",
+  waitBrief:"Briefing", playersHere:n=>`Players in the room (${n})`,
+  waitLate:"A game is in progress — you'll join from the next game. Watch the standings below.",
+  leave:"Leave room",
   edition:"Global Macro Wire · Reuters/CNBC/AP/NYT", dateHidden:"Date hidden",
   masthead:"The Morning Wire", mastheadSub:"Macro headlines published before the opening bell",
+  marketData:"PRE-OPEN MARKET DATA", mdPrev:"S&P 500 yesterday", mdGap:"Overnight gap",
+  mdTrend:"5-day trend", mdVix:"VIX (prev close)", mdTnx:"10Y Treasury", mdWti:"WTI oil (prev day)",
+  mdNote:"All values were knowable before the open. The AI bots decided from headlines only.",
   infoCut:"INFORMATION MARKET",
   buyInfo:p=>`📰 Buy tomorrow's paper — ${p}`,
-  tomorrow:"Tomorrow's Paper", noisyTag:"(market wrap removed)", revealTag:"(full edition)", paid:p=>`−${p} paid`,
-  feeNote:"The fee is charged immediately and is non-refundable, bet or no bet. Is it worth it?",
-  round:"Round", capitalAvail:"Capital",
-  step1:"STEP 1 · Direction", step2:"STEP 2 · Bet size", step3:"STEP 3 · Order",
-  submit:"Place order", pass:"Sit out this round (no bet)",
-  aiBox:"AI rivals", aiBoxD:"placed their orders from the same headlines. Reasoning is revealed with the result.",
+  tomorrow:"Tomorrow's Paper", noisyTag:"(market wrap removed)", revealTag:"(full edition)", paid:p=>`−${p} at settlement`,
+  feeNote:"The fee is charged at settlement, bet or no bet, and is non-refundable. Is it worth it?",
+  round:"Round", capitalAvail:"Capital", timeLeft:"Time left", settling:"Time's up — settling…",
+  stepPos:"STEP 1 · Position — drag left to short, right to go long", stepOrder:"STEP 2 · Order",
+  posLong:v=>`Long ${v}%`, posShort:v=>`Short ${v}%`, posFlat:"No position", lev:x=>`${x}× leverage`,
+  varNote:v=>`95% VaR — estimated worst-day loss ≈ −${v}% of capital`, varZero:"Center = sit out · beyond ±100% = leverage",
+  wiped:"💀 Wiped out", wipedMsg:"Your capital is gone — your game is over. You can keep watching the news, results and standings.",
+  submit:"Place order", resubmit:"Update order", pass:"Sit out this round (no bet)",
+  submitted:"Order received — you can change it until time runs out.",
+  standings:"Standings",
   aiLangNote:"Bot reasoning is written in Korean.",
   resultLabel:`${INDEX_NAME} return that day`,
   hit:"Direction: HIT", miss:"Direction: MISS", sat:"Sat out",
   myChoice:"Your call", infoFee:"info fee", balance:"Balance",
   dirLong:"Long", dirShort:"Short", dirPass:"Pass", infoBadge:"📰 bought info",
+  waitNext:"Waiting for the host to start the next round…",
   next:"Next trading day →", finalBtn:"See final results",
-  finalTitle:"Session over", busted:"You're bust — position sizing is a skill too.", completed:n=>`${n} rounds completed.`,
+  finalTitle:"Game over", busted:"You're bust — position sizing is a skill too.", completed:n=>`${n} rounds completed.`,
   thRank:"Rank", thPlayer:"Player", thCap:"Final capital", thRet:"Return", me:"(you)",
-  lbNoteOn:"Your score is on the class leaderboard.", lbNoteDemo:"Demo mode: score saved in this browser only.",
-  fullLb:"Class leaderboard", again:"Play again",
+  lbNoteOn:"Scores were saved to the all-time leaderboard.", lbNoteDemo:"Demo mode: score saved in this browser only.",
+  again:"Back to lobby", spectating:"You joined mid-game — you'll play from the next game.",
 },
 ko: {
   brand:"조간 트레이더", tagline:`Morning Paper Trader · ${INDEX_NAME} × 효율적 시장가설`,
   admin:"관리자", toStudent:"학생 화면으로",
-  demoBanner:["데모 모드","— Firebase에 연결하지 못했습니다. 기록이 이 브라우저에만 저장됩니다."],
+  demoBanner:["데모 모드","— Firebase에 연결하지 못했습니다. 수업 모드는 사용할 수 없고, 혼자 연습 기록은 이 브라우저에만 저장됩니다."],
   connecting:"연결 중…",
   lobbyTitle1:"오늘 아침 신문만 보고,", lobbyTitle2:`${INDEX_NAME}에 베팅할 수 있을까?`,
-  lobbyIntro:`매 라운드, 실제 과거 어느 거래일의 개장 전 거시경제 헤드라인이 주어집니다 (날짜는 비공개). 그날 ${INDEX_NAME} 지수가 올랐을지 내렸을지(시가→종가) 방향과 베팅 규모를 정하세요. 같은 헤드라인을 읽은 AI 봇들과 경쟁합니다.`,
+  lobbyIntro:`매 라운드, 실제 과거 어느 거래일의 개장 전 거시경제 헤드라인이 주어집니다 (날짜는 비공개). 그날 ${INDEX_NAME} 지수가 올랐을지 내렸을지(시가→종가) 방향과 베팅 규모를 정하세요. 같은 헤드라인을 읽은 친구들·AI 봇들과 경쟁합니다.`,
   kvCapital:"시작 자본", kvRounds:"라운드", kvRoundsVal:n=>`${n}회 · 날짜 중복 없음`,
   kvInfo:"정보 시장", kvInfoOn:p=>`내일 조간 ${p}`, kvInfoOff:"꺼짐",
-  kvBots:"AI 경쟁자", kvBotsNone:"없음",
-  namePh:"이름 또는 닉네임", start:"거래 시작",
+  kvBots:"AI 벤치마크", kvBotsNone:"없음",
+  namePh:"이름 또는 닉네임", joinClass:"수업 게임 참가", solo:"혼자 연습하기",
   howto:"게임 방법 (30초 설명)",
-  howto1:s=>`조간 헤드라인을 읽고 ${s[0]} 또는 ${s[1]}를 고른다.`, long:"매수 ▲", short:"매도 ▼",
-  howto2:"자본의 몇 %를 걸지 정한다(0–100%). 관망도 전략이다.",
+  howto1:"조간 헤드라인을 읽고 포지션 바를 움직인다 — 가운데 기준 오른쪽은 매수(Long), 왼쪽은 매도(Short), 가운데는 관망.", long:"매수", short:"매도",
+  howto2:"중앙에서 멀수록 베팅이 커진다. ±100%를 넘으면 레버리지(증거금 거래)다.",
+  howtoLev:"레버리지는 양날의 검 — 자본이 모두 사라지면 탈락하며, 뉴스와 순위는 계속 볼 수 있지만 더는 베팅할 수 없다. 바를 움직이면 95% VaR(예상 최악 하루 손실)이 표시된다.",
   howto3:p=>`${p}을 내면 내일 조간을 미리 볼 수 있다. 낼 가치가 있는지는 스스로 판단.`,
   howto4:`실제 그날의 ${INDEX_NAME} 수익률로 손익이 정산된다. 봇들의 판단 근거도 함께 공개.`,
-  lb:"Leaderboard", lbEmpty:"아직 기록이 없습니다. 첫 번째 트레이더가 되어 보세요.",
+  lb:"명예의 전당", lbEmpty:"아직 기록이 없습니다. 첫 번째 트레이더가 되어 보세요.",
   disclaimer:`실제 과거 ${INDEX_NAME} 데이터 기반 교육용 시뮬레이션입니다. 투자 자문이 아닙니다.`,
+  dataWarn:"⚠ 헤드라인 데이터 파일이 로드되지 않아 내장 샘플(한국어)로 실행 중입니다. 관리자 ④ 데이터 파일을 확인하세요.",
   loginTitle:"관리자 로그인", pw:"비밀번호", pwWrong:"비밀번호가 올바르지 않습니다.", back:"← 돌아가기",
   pwHint:"비밀번호는 index.html 상단 ADMIN_PASSCODE에서 변경합니다.",
   online:"실시간 공유 중", demoTag:"데모 모드", saved:"저장됨 ✓",
-  adminNote:"설정은 저장 즉시 모두에게 반영되며, 각자 다음 게임 시작부터 적용됩니다.",
-  s1:"① AI 경쟁자", s2:"② 정보 시장", s2b:"(Grossman-Stiglitz)", s3:"③ 게임 규칙", s4:"④ 데이터 파일", s5:"⑤ 리더보드",
+  adminNote:"설정은 저장 즉시 모두에게 반영됩니다. 게임 규칙 변경은 다음 게임부터 적용됩니다.",
+  s0:"⓪ 실시간 수업 게임", s1:"① AI 벤치마크", s2:"② 정보 시장", s2b:"(Grossman-Stiglitz)",
+  s3:"③ 게임 규칙", s4:"④ 데이터 파일", s5:"⑤ 명예의 전당",
+  phaseName:{lobby:"대기실",betting:"베팅 중",reveal:"결과 공개",finished:"종료"},
+  stRound:(a,b)=>`라운드 ${a} / ${b}`, stPlayers:(n,m)=>`룸 인원 ${n}명 · 참가 ${m}명`,
+  turnSec:"턴당 베팅 시간(초)", startGame:"게임 시작", endTurn:"턴 즉시 종료",
+  nextRound:"다음 라운드 →", endGame:"게임 종료·기록 저장", resetRoom:"룸 초기화",
+  resetRoomC:"룸을 초기화할까요? 자본이 초기화되고 모두 대기실로 돌아갑니다.",
+  needPlayers:"플레이어 입장을 기다리는 중…", colBet:"베팅",
+  noBet:"—", botsRow:"AI 벤치마크",
   rInfo:"내일 조간 구매 기능", rInfoD:"학생이 돈을 내고 다음 날 아침 헤드라인을 미리 볼 수 있게 합니다.",
   rPrice:"정보 가격 (KRW)", rPriceD:"기본 ₩10,000 — 완전한 예지력의 기대이익과 비슷한 수준입니다.",
   rReveal:"공개 모드", rRevealD:"시황 기사 포함 = 사실상 정답 노출(내부정보 실험). 기본은 노이즈 모드.",
   rBotsBuy:"봇의 정보 구매 허용", rBotsBuyD:"고급 봇은 비용-편익을 따져 스스로 판단합니다.",
-  rRounds:"세션당 라운드 수", rRoundsD:n=>`${n}일 중에서 중복 없이 추출됩니다.`,
+  rRounds:"게임당 라운드 수", rRoundsD:n=>`${n}일 중에서 중복 없이 추출됩니다.`,
   dataD:"저장소에서 index.html과 같은 폴더에 game_database_en.json / game_database_ko.json을 두세요.",
   dataLoaded:n=>`로드됨 · ${n}일`, dataMissing:"없음 → 내장 샘플 사용", reload:"파일 다시 불러오기",
   lbReset:"리더보드 초기화", lbResetC:"리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.",
+  waitTitle:"대기실", waitSub:"곧 호스트가 게임을 시작합니다. 기다리는 동안 브리핑을 읽어보세요.",
+  waitBrief:"게임 브리핑", playersHere:n=>`대기 중인 플레이어 (${n})`,
+  waitLate:"게임이 진행 중입니다 — 다음 게임부터 참가합니다. 아래에서 순위를 관전하세요.",
+  leave:"나가기",
   edition:"Global Macro Wire · Reuters/CNBC/AP/NYT", dateHidden:"날짜 비공개",
   masthead:"오늘의 조간", mastheadSub:"개장 전에 발행된 거시경제 헤드라인",
+  marketData:"개장 전 시장 지표", mdPrev:"S&P 500 전일", mdGap:"오버나이트 갭",
+  mdTrend:"최근 5일", mdVix:"VIX (전일 종가)", mdTnx:"미 10년물 금리", mdWti:"WTI 유가 (전일)",
+  mdNote:"모든 수치는 개장 전에 알 수 있는 정보입니다. AI 봇은 헤드라인만 보고 판단했습니다.",
   infoCut:"INFORMATION MARKET",
   buyInfo:p=>`📰 내일 조간 미리보기 구매 — ${p}`,
-  tomorrow:"내일의 조간", noisyTag:"(시황기사 제외판)", revealTag:"(전체판)", paid:p=>`−${p} 결제됨`,
-  feeNote:"비용은 베팅 여부와 무관하게 즉시 차감되며 환불되지 않습니다. 낼 가치가 있을까요?",
-  round:"Round", capitalAvail:"가용자본",
-  step1:"STEP 1 · 방향", step2:"STEP 2 · 베팅 규모", step3:"STEP 3 · 주문",
-  submit:"주문 체결", pass:"이번 라운드 관망 (베팅 안 함)",
-  aiBox:"AI 경쟁자", aiBoxD:"같은 헤드라인으로 이미 주문했습니다. 결과에서 근거가 공개됩니다.",
+  tomorrow:"내일의 조간", noisyTag:"(시황기사 제외판)", revealTag:"(전체판)", paid:p=>`−${p} 정산 시 차감`,
+  feeNote:"비용은 베팅 여부와 무관하게 정산 시 차감되며 환불되지 않습니다. 낼 가치가 있을까요?",
+  round:"Round", capitalAvail:"가용자본", timeLeft:"남은 시간", settling:"시간 종료 — 정산 중…",
+  stepPos:"STEP 1 · 포지션 — 왼쪽은 매도, 오른쪽은 매수", stepOrder:"STEP 2 · 주문",
+  posLong:v=>`매수(Long) ${v}%`, posShort:v=>`매도(Short) ${v}%`, posFlat:"무포지션", lev:x=>`레버리지 ×${x}`,
+  varNote:v=>`95% VaR — 예상 최악 하루 손실 ≈ 자본의 −${v}%`, varZero:"가운데 = 관망 · ±100% 초과 = 레버리지",
+  wiped:"💀 파산", wipedMsg:"자본이 모두 사라졌습니다 — 게임이 종료되었습니다. 뉴스와 결과, 순위는 계속 볼 수 있습니다.",
+  submit:"주문 체결", resubmit:"주문 수정", pass:"이번 라운드 관망 (베팅 안 함)",
+  submitted:"주문 접수 — 마감 전까지 변경할 수 있습니다.",
+  standings:"순위",
   aiLangNote:"",
   resultLabel:`당일 ${INDEX_NAME} 수익률`,
   hit:"방향 적중", miss:"방향 빗나감", sat:"관망",
   myChoice:"나의 선택", infoFee:"정보비용", balance:"잔고",
   dirLong:"매수(Long)", dirShort:"매도(Short)", dirPass:"관망", infoBadge:"📰 정보구매",
+  waitNext:"호스트가 다음 라운드를 시작하길 기다리는 중…",
   next:"다음 거래일 →", finalBtn:"최종 결과 보기",
-  finalTitle:"세션 종료", busted:"자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다.", completed:n=>`${n}라운드 완료.`,
+  finalTitle:"게임 종료", busted:"자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다.", completed:n=>`${n}라운드 완료.`,
   thRank:"순위", thPlayer:"참가자", thCap:"최종 자본", thRet:"수익률", me:"(나)",
-  lbNoteOn:"기록이 학급 리더보드에 등록되었습니다.", lbNoteDemo:"데모 모드: 기록이 이 브라우저에만 저장되었습니다.",
-  fullLb:"전체 리더보드", again:"다시 도전",
+  lbNoteOn:"기록이 명예의 전당에 저장되었습니다.", lbNoteDemo:"데모 모드: 기록이 이 브라우저에만 저장되었습니다.",
+  again:"처음으로", spectating:"게임 중간에 입장했습니다 — 다음 게임부터 참가합니다.",
 }};
 
 const DEFAULT_CONFIG = {
   bots:{ novice:true, intermediate:true, advanced:true },
   infoFeature:true, infoPrice:10000, revealMode:false, botsCanBuy:true,
-  roundsPerSession:10
+  roundsPerSession:10, turnSeconds:60
 };
 
 const START_CAPITAL = 1000000;
+const RUIN_FLOOR = 10000;               // 자본이 이 밑으로 떨어지면 파산(탈락)
+const MAX_POS = 500;                    // 포지션 한도 ±500% (5x)
+const VAR95 = 0.0183;                   // 데이터셋의 |시가→종가| 일간 변동 95퍼센타일
 const KRW = n => "₩" + Math.round(n).toLocaleString("ko-KR");
 const signKRW = n => (n>=0?"+":"−") + KRW(Math.abs(n)).slice(1);
 const pctf = r => (r>=0?"+":"") + (r*100).toFixed(2) + "%";
 const cls = r => r>0? "up" : r<0? "down" : "muted";
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
 const validDb = d => Array.isArray(d) && d.length>0 && d.every(x=>x && x.headlines && typeof x.kospi_return==="number" && x.bots && x.next_day_noisy && x.next_day_reveal);
+const mmss = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
 
 async function fetchDb(lang){
   try{
@@ -645,23 +693,34 @@ async function fetchDb(lang){
 function App(){
   const [lang, setLang] = useState(lsGet("mpt_lang") || "en");
   const t = STR[lang];
-  const [view, setView] = useState(location.hash==="#admin" ? "adminLogin" : "lobby");
-  const [conn, setConn] = useState("checking");   // checking | online | demo
+  const [view, setView] = useState(location.hash==="#admin" ? "adminLogin" : "lobby"); // lobby | class | solo screens | admin*
+  const [conn, setConn] = useState("checking");
   const [cfg, setCfg] = useState(DEFAULT_CONFIG);
   const [dbs, setDbs] = useState({en:null, ko:null});
   const [lb, setLb] = useState([]);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(lsGet("mpt_name") || "");
   const [adminOk, setAdminOk] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [, setTick] = useState(0);
+  const now = () => Date.now() + offset;
 
-  // 세션 상태
+  // ---- class (shared room) state ----
+  const [pid] = useState(()=>{ let p = lsGet("mpt_pid"); if(!p){ p = "p"+Math.random().toString(36).slice(2,10); lsSet("mpt_pid", p); } return p; });
+  const [RS, setRS] = useState(null);          // room/state
+  const [RP, setRP] = useState({});            // room/players
+  const [RB, setRB] = useState({});            // room/bets
+  const [RR, setRR] = useState({});            // room/results
+  const [myBet, setMyBet] = useState({pos:0, bought:false});
+  const settlingRef = useRef(false);
+
+  // ---- solo state ----
   const [sc, setSc] = useState(DEFAULT_CONFIG);
   const [days, setDays] = useState([]);
   const [i, setI] = useState(0);
   const [cap, setCap] = useState(START_CAPITAL);
   const [botCaps, setBotCaps] = useState({});
   const [bought, setBought] = useState(false);
-  const [dir, setDir] = useState(null);
-  const [size, setSize] = useState(50);
+  const [pos, setPos] = useState(0);
   const [res, setRes] = useState(null);
   const [nRounds, setNRounds] = useState(0);
   const [savedMsg, setSavedMsg] = useState("");
@@ -671,77 +730,212 @@ function App(){
   }); };
 
   useEffect(()=>{
-    fbReady.then(db => setConn(db ? "online" : "demo"));
+    fbReady.then(db => {
+      setConn(db ? "online" : "demo");
+      if (db) db.ref(".info/serverTimeOffset").on("value", s => setOffset(s.val()||0));
+    });
     Store.on("config", v => { if(v) setCfg({...DEFAULT_CONFIG, ...v, bots:{...DEFAULT_CONFIG.bots, ...(v.bots||{})}}); });
     Store.on("leaderboard", v => {
       const arr = v ? Object.values(v) : [];
       arr.sort((a,b)=>b.capital-a.capital);
       setLb(arr.slice(0,100));
     });
+    Store.on("room/state", v => setRS(v));
+    Store.on("room/players", v => setRP(v||{}));
+    Store.on("room/bets", v => setRB(v||{}));
+    Store.on("room/results", v => setRR(v||{}));
     loadFiles();
+    const iv = setInterval(()=>setTick(x=>x+1), 400);
+    return ()=>clearInterval(iv);
   },[]);
 
+  // restore my bet on round change / refresh
+  useEffect(()=>{
+    if(!RS) return;
+    const mine = (RB[RS.round]||{})[pid];
+    setMyBet(mine ? {pos:(mine.pos!=null? mine.pos : (mine.dir||0)*(mine.size||0)), bought:!!mine.bought}
+                  : {pos:0, bought:false});
+  }, [RS && RS.round, RS && RS.phase==="betting"]);
+
   const pickLang = L => { setLang(L); lsSet("mpt_lang", L); };
-  const db = dbs[lang] || SAMPLE_DB;
   const activeBots = useMemo(()=>Object.keys(BOT_META).filter(b=>cfg.bots[b]), [cfg]);
-  const day = days[i];
+  const usingSample = !dbs.en && !dbs.ko;
+  const anyDb = dbs.en || dbs.ko || SAMPLE_DB;
   const bName = b => BOT_META[b].name[lang];
   const dirLabel = d => d===1? t.dirLong : d===-1? t.dirShort : t.dirPass;
 
-  /* ---------- 진행 ---------- */
-  function start(){
+  // headline lookup by id, preferring the viewer's language
+  const maps = useMemo(()=>{
+    const m = {};
+    for(const [L, d] of Object.entries({en:dbs.en, ko:dbs.ko, sample:SAMPLE_DB}))
+      if(d) { m[L] = {}; d.forEach(x=>m[L][x.id]=x); }
+    return m;
+  }, [dbs]);
+  const dayById = id => (maps[lang]&&maps[lang][id]) || (maps[lang==="en"?"ko":"en"]&&maps[lang==="en"?"ko":"en"][id]) || maps.sample[id];
+
+  /* ================= CLASS GAME (shared) ================= */
+
+  function joinClass(){
+    if(!name.trim() || conn!=="online") return;
+    lsSet("mpt_name", name.trim());
+    const existing = RP[pid];
+    const inLobby = !RS || RS.phase==="lobby" || RS.phase==="finished" || !RS.phase;
+    if(existing){
+      Store.set(`room/players/${pid}/name`, name.trim().slice(0,20));
+      Store.set(`room/players/${pid}/lang`, lang);
+    } else {
+      Store.set(`room/players/${pid}`, { name:name.trim().slice(0,20), lang, joinedAt:Date.now(),
+        capital:START_CAPITAL, playing: inLobby });
+    }
+    setView("class");
+  }
+  function leaveRoom(){ Store.remove(`room/players/${pid}`); setView("lobby"); }
+
+  function writeBet(nb){
+    setMyBet(nb);
+    const p = Math.max(-MAX_POS, Math.min(MAX_POS, nb.pos||0));
+    Store.set(`room/bets/${RS.round}/${pid}`, { pos:p, dir: p>0?1:p<0?-1:0, size:Math.abs(p), bought:nb.bought, ts:Date.now() });
+  }
+  const classBuyInfo = () => {
+    const me = RP[pid]; if(!me || me.busted || myBet.bought) return;
+    const price = (RS.cfg&&RS.cfg.infoPrice)||cfg.infoPrice;
+    if(me.capital <= price) return;
+    writeBet({...myBet, bought:true});
+  };
+
+  // ---- host actions ----
+  function hostStart(){
+    const base = anyDb;
+    const nR = Math.max(1, Math.min(cfg.roundsPerSession, base.length));
+    const ids = shuffle(base.map(d=>d.id)).slice(0, nR);
+    const cfgS = { infoFeature:cfg.infoFeature, infoPrice:cfg.infoPrice, revealMode:cfg.revealMode,
+                   botsCanBuy:cfg.botsCanBuy, bots:{...cfg.bots} };
+    const bc = {}; activeBots.forEach(b=>bc[b]=START_CAPITAL);
+    Store.remove("room/bets"); Store.remove("room/results");
+    Object.keys(RP).forEach(id2=>{
+      Store.set(`room/players/${id2}/capital`, START_CAPITAL);
+      Store.set(`room/players/${id2}/playing`, true);
+      Store.set(`room/players/${id2}/busted`, false);
+    });
+    Store.set("room/state", { phase:"betting", round:0, total:nR, dateIds:ids, cfg:cfgS,
+      botCaps:bc, saved:false, turnEndsAt: now() + (cfg.turnSeconds||60)*1000, startedAt: now() });
+  }
+
+  function hostSettle(){
+    if(!RS || RS.phase!=="betting" || settlingRef.current) return;
+    settlingRef.current = true;
+    try{
+      const d = dayById(RS.dateIds[RS.round]);
+      const r = d.kospi_return;
+      const bets = RB[RS.round]||{};
+      const cfgS = RS.cfg||cfg;
+      const players = {};
+      Object.entries(RP).forEach(([id2,p])=>{
+        if(!p.playing || p.busted) return;
+        const b = bets[id2]||{};
+        const bdir = (b.dir===1||b.dir===-1)? b.dir : 0;
+        const bsize = Math.min(MAX_POS, Math.abs(b.size||0));
+        const fee = (cfgS.infoFeature && b.bought)? cfgS.infoPrice : 0;
+        const betAmt = Math.max(0,(p.capital-fee)) * (bdir===0?0:bsize)/100;
+        const pnl = bdir*betAmt*r - fee;
+        let capN = Math.max(0, p.capital + pnl);
+        const busted = capN < RUIN_FLOOR;
+        players[id2] = { name:p.name, dir:bdir, size:bdir===0?0:bsize, bought:!!(cfgS.infoFeature&&b.bought), pnl, capital:capN, busted };
+        Store.set(`room/players/${id2}/capital`, capN);
+        if(busted) Store.set(`room/players/${id2}/busted`, true);
+      });
+      const bots = {}; const nb = {...(RS.botCaps||{})};
+      Object.keys(nb).forEach(b=>{
+        const bd = d.bots[b];
+        const buys = cfgS.infoFeature && cfgS.botsCanBuy && bd.informed.buy && nb[b] > cfgS.infoPrice;
+        const dec = buys ? bd.informed : bd.base;
+        const fee = buys ? cfgS.infoPrice : 0;
+        const bbet = (nb[b]-fee) * dec.size/100;
+        const bpnl = dec.dir*bbet*r - fee;
+        nb[b] += bpnl;
+        bots[b] = { dir:dec.dir, size:dec.size, rationale:dec.rationale, buys, pnl:bpnl, capital:nb[b] };
+      });
+      Store.set(`room/results/${RS.round}`, { r, dateId:RS.dateIds[RS.round], players, bots });
+      Store.set("room/state", { ...RS, phase:"reveal", botCaps:nb, turnEndsAt:null });
+    } finally { setTimeout(()=>{ settlingRef.current=false; }, 1500); }
+  }
+
+  function hostNext(){
+    if(!RS || RS.phase!=="reveal") return;
+    Store.set("room/state", { ...RS, round:RS.round+1, phase:"betting",
+      turnEndsAt: now() + (cfg.turnSeconds||60)*1000 });
+  }
+
+  function hostEnd(){
+    if(!RS || RS.saved) { Store.set("room/state", {...RS, phase:"finished"}); return; }
+    Object.values(RP).forEach(p=>{
+      if(p.playing) Store.push("leaderboard", { name:p.name, capital:Math.round(p.capital),
+        ret:(p.capital-START_CAPITAL)/START_CAPITAL, rounds:(RS.round||0)+1, ts:Date.now() });
+    });
+    Store.set("room/state", { ...RS, phase:"finished", saved:true, turnEndsAt:null });
+  }
+
+  function hostReset(){
+    Store.remove("room/bets"); Store.remove("room/results");
+    Object.keys(RP).forEach(id2=>{
+      Store.set(`room/players/${id2}/capital`, START_CAPITAL);
+      Store.set(`room/players/${id2}/playing`, true);
+      Store.set(`room/players/${id2}/busted`, false);
+    });
+    Store.set("room/state", { phase:"lobby" });
+  }
+
+  // host auto-settle when timer expires (host tab must stay open)
+  useEffect(()=>{
+    if(adminOk && RS && RS.phase==="betting" && RS.turnEndsAt && now() > RS.turnEndsAt) hostSettle();
+  });
+
+  /* ================= SOLO ================= */
+
+  function soloStart(){
     if(!name.trim()) return;
+    lsSet("mpt_name", name.trim());
+    const base = dbs[lang] || SAMPLE_DB;
     const snapshot = JSON.parse(JSON.stringify(cfg));
-    const n = Math.max(1, Math.min(snapshot.roundsPerSession, db.length));
+    const n = Math.max(1, Math.min(snapshot.roundsPerSession, base.length));
     setSc(snapshot);
-    setDays(shuffle(db).slice(0, n));
+    setDays(shuffle(base).slice(0, n));
     setI(0); setCap(START_CAPITAL); setNRounds(0);
-    const bc={}; Object.keys(BOT_META).filter(b=>snapshot.bots[b]).forEach(b=>bc[b]=START_CAPITAL);
+    const bc={}; activeBots.forEach(b=>bc[b]=START_CAPITAL);
     setBotCaps(bc);
-    setBought(false); setDir(null); setSize(50); setRes(null);
+    setBought(false); setPos(0); setRes(null);
     setView("play");
   }
-
-  function buyInfo(){
-    if(bought || cap < sc.infoPrice) return;
-    setCap(c => c - sc.infoPrice);
-    setBought(true);
-  }
-
-  function settle(pDir, pSize){
+  const day = days[i];
+  function soloBuy(){ if(bought || cap < sc.infoPrice) return; setCap(c=>c-sc.infoPrice); setBought(true); }
+  function soloSettle(pDir, pSize){
     const r = day.kospi_return;
     const bet = cap * pSize/100;
     const pnl = pDir * bet * r;
-    const newCap = cap + pnl;
-
     const bres = {}; const nb = {...botCaps};
     Object.keys(nb).forEach(b=>{
       const bd = day.bots[b];
       const buys = sc.infoFeature && sc.botsCanBuy && bd.informed.buy && nb[b] > sc.infoPrice;
-      const d = buys ? bd.informed : bd.base;
+      const dd = buys ? bd.informed : bd.base;
       const fee = buys ? sc.infoPrice : 0;
-      const bbet = (nb[b]-fee) * d.size/100;
-      const bpnl = d.dir * bbet * r - fee;
+      const bbet = (nb[b]-fee) * dd.size/100;
+      const bpnl = dd.dir*bbet*r - fee;
       nb[b] += bpnl;
-      bres[b] = { dir:d.dir, size:d.size, rationale:d.rationale, buys, pnl:bpnl, cap:nb[b] };
+      bres[b] = { dir:dd.dir, size:dd.size, rationale:dd.rationale, buys, pnl:bpnl, cap:nb[b] };
     });
-
-    setBotCaps(nb); setCap(newCap); setNRounds(n=>n+1);
+    setBotCaps(nb); setCap(Math.max(0, cap+pnl)); setNRounds(n=>n+1);
     setRes({ r, pDir, pSize, bet, pnl, fee: bought? sc.infoPrice:0, bres });
     setView("result");
   }
-
-  function next(){
-    if(i+1 >= days.length || cap <= 0){ finish(); return; }
-    setI(x=>x+1); setBought(false); setDir(null); setSize(50); setRes(null);
+  function soloNext(){
+    if(i+1 >= days.length || cap < RUIN_FLOOR){ soloFinish(); return; }
+    setI(x=>x+1); setBought(false); setPos(0); setRes(null);
     setView("play");
   }
-
-  function finish(){
-    if(name.trim() && nRounds>0){
-      Store.push("leaderboard", { name:name.trim().slice(0,20), capital:Math.round(cap),
-        ret:(cap-START_CAPITAL)/START_CAPITAL, rounds:nRounds, lang, ts:Date.now() });
-    }
+  function soloFinish(){
+    if(name.trim() && nRounds>0)
+      Store.push("leaderboard", { name:name.trim().slice(0,20)+" (solo)", capital:Math.round(cap),
+        ret:(cap-START_CAPITAL)/START_CAPITAL, rounds:nRounds, ts:Date.now() });
     setView("final");
   }
 
@@ -750,8 +944,31 @@ function App(){
     setSavedMsg(t.saved); setTimeout(()=>setSavedMsg(""), 1500);
   }
 
-  /* ---------- 공용 부품 ---------- */
+  /* ================= shared UI pieces ================= */
   const Headlines = ({items}) => <ol className="headlines">{items.map((h,k)=><li key={k}>{h}</li>)}</ol>;
+
+  const MarketStrip = ({m}) => { if(!m) return null;
+    const P = v => v==null? "—" : (v>=0?"+":"")+(v*100).toFixed(2)+"%";
+    const C = v => v==null? "muted" : v>0? "up" : v<0? "down" : "muted";
+    const items = [
+      [t.mdPrev,  P(m.prev),  C(m.prev)],
+      [t.mdGap,   P(m.gap),   C(m.gap)],
+      [t.mdTrend, P(m.trend5),C(m.trend5)],
+      [t.mdVix,   m.vix==null? "—" : m.vix.toFixed(1), m.vix!=null&&m.vix>=25? "up":"muted"],
+      [t.mdTnx,   m.tnx==null? "—" : m.tnx.toFixed(2)+"%"+(m.tnx_bp!=null? ` (${m.tnx_bp>=0?"+":""}${m.tnx_bp}bp)`:""), "muted"],
+      [t.mdWti,   P(m.wti),   C(m.wti)],
+    ];
+    return <div style={{margin:"12px 0 2px"}}>
+      <div className="cutline"><span>{t.marketData}</span></div>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:6}}>
+        {items.map(([k,v,c],i)=>
+          <div key={i} style={{background:"#f4efe2", border:"1px solid #e2dcc9", borderRadius:8, padding:"6px 8px"}}>
+            <div style={{fontSize:9.5, letterSpacing:".4px", textTransform:"uppercase", color:"var(--muted)"}}>{k}</div>
+            <div className={"tnum "+c} style={{fontWeight:800, fontSize:13.5}}>{v}</div>
+          </div>)}
+      </div>
+      <div className="muted" style={{fontSize:10.5, marginTop:4}}>{t.mdNote}</div>
+    </div>; };
 
   const Leaderboard = ({rows, limit}) => rows.length===0 ? <p className="muted" style={{fontSize:13}}>{t.lbEmpty}</p> :
     <table><thead><tr><th style={{width:36}}>#</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.thRet}</th></tr></thead>
@@ -763,6 +980,24 @@ function App(){
         </tr>)}
       </tbody></table>;
 
+  // live standings: players + bots, sorted by capital
+  const standingsRows = () => {
+    const rows = Object.entries(RP).filter(([,p])=>p.playing)
+      .map(([id2,p])=>({key:id2, name:(p.busted?"💀 ":"")+p.name + (id2===pid? " "+t.me:""), cap:p.capital, bot:false, me:id2===pid}));
+    Object.entries((RS&&RS.botCaps)||{}).forEach(([b,c])=>rows.push({key:b, name:bName(b), cap:c, bot:true}));
+    rows.sort((a,b)=>b.cap-a.cap);
+    return rows;
+  };
+  const Standings = ({limit}) =>
+    <table><thead><tr><th style={{width:34}}>#</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th></tr></thead>
+      <tbody>{standingsRows().slice(0,limit||99).map((e,k)=>
+        <tr key={e.key} className={e.me? "me":""}>
+          <td className="tnum muted">{k+1}</td>
+          <td>{e.bot? <span className={"badge "+BOT_META[e.key].cls}>{e.name}</span> : e.name}</td>
+          <td className={"r tnum "+(e.cap>=START_CAPITAL?"up":"down")}><b>{KRW(e.cap)}</b></td>
+        </tr>)}
+      </tbody></table>;
+
   const LangSwitch = () =>
     <span style={{display:"inline-flex", gap:2}}>
       <button className="link" style={{fontWeight:lang==="en"?800:400, color:lang==="en"?"#fff":undefined}} onClick={()=>pickLang("en")}>EN</button>
@@ -770,6 +1005,7 @@ function App(){
       <button className="link" style={{fontWeight:lang==="ko"?800:400, color:lang==="ko"?"#fff":undefined}} onClick={()=>pickLang("ko")}>한국어</button>
     </span>;
 
+  const myCap = view==="class" ? (RP[pid]&&RP[pid].capital) : cap;
   const TopBar = () =>
     <div className="topbar">
       <div>
@@ -778,8 +1014,8 @@ function App(){
       </div>
       <div style={{display:"flex", alignItems:"center", gap:14}}>
         <LangSwitch/>
-        {(view==="play"||view==="result") &&
-          <span className="tnum" style={{fontSize:13}}>{name} · <b style={{color:cap>=START_CAPITAL?"#ff8a80":"#9dc1ff"}}>{KRW(cap)}</b></span>}
+        {(view==="class"||view==="play"||view==="result") && myCap!=null &&
+          <span className="tnum" style={{fontSize:13}}>{name} · <b style={{color:myCap>=START_CAPITAL?"#ff8a80":"#9dc1ff"}}>{KRW(myCap)}</b></span>}
         {view.startsWith("admin")
           ? <button className="link" onClick={()=>setView("lobby")}>{t.toStudent}</button>
           : <button className="link" onClick={()=>setView(adminOk?"admin":"adminLogin")}>{t.admin}</button>}
@@ -790,10 +1026,21 @@ function App(){
     <div className="notice" style={{maxWidth:1000, margin:"14px auto 0"}}>
       <b>{t.demoBanner[0]}</b> {t.demoBanner[1]}
     </div>;
+  const SampleWarn = () => usingSample &&
+    <div className="notice err" style={{maxWidth:1000, margin:"14px auto 0"}}>{t.dataWarn}</div>;
 
-  /* ================= 화면 ================= */
+  const BriefingList = () =>
+    <ol style={{margin:"10px 0 0 18px", color:"var(--muted)", fontSize:13.5}}>
+      <li>{t.howto1}</li>
+      <li>{t.howto2}</li>
+      <li>{t.howtoLev}</li>
+      {cfg.infoFeature && <li>{t.howto3(KRW(cfg.infoPrice))}</li>}
+      <li>{t.howto4}</li>
+    </ol>;
 
-  if(view==="lobby") return <div><TopBar/><DemoBanner/>
+  /* ================= SCREENS ================= */
+
+  if(view==="lobby") return <div><TopBar/><DemoBanner/><SampleWarn/>
     <div className="wrap narrow fade">
       <div className="card">
         <h1 className="serif" style={{fontSize:30, fontWeight:900, lineHeight:1.25, letterSpacing:"-1px"}}>
@@ -802,25 +1049,21 @@ function App(){
         <p className="muted" style={{marginTop:12, fontSize:14}}>{t.lobbyIntro}</p>
         <div className="kv">
           <div className="box"><div className="k">{t.kvCapital}</div><div className="v tnum">{KRW(START_CAPITAL)}</div></div>
-          <div className="box"><div className="k">{t.kvRounds}</div><div className="v">{t.kvRoundsVal(Math.min(cfg.roundsPerSession, db.length))}</div></div>
+          <div className="box"><div className="k">{t.kvRounds}</div><div className="v">{t.kvRoundsVal(Math.min(cfg.roundsPerSession, anyDb.length))}</div></div>
           <div className="box"><div className="k">{t.kvInfo}</div><div className="v">{cfg.infoFeature? t.kvInfoOn(KRW(cfg.infoPrice)) : t.kvInfoOff}</div></div>
           <div className="box"><div className="k">{t.kvBots}</div><div className="v">{activeBots.length? activeBots.map(bName).join(" · ") : t.kvBotsNone}</div></div>
         </div>
-        <div style={{display:"flex", gap:8}}>
-          <input type="text" placeholder={t.namePh} value={name} maxLength={20}
-            onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&start()} />
-          <button className="btn" style={{width:"auto", padding:"12px 26px"}} disabled={!name.trim() || conn==="checking"} onClick={start}>
-            {conn==="checking"? t.connecting : t.start}
+        <input type="text" placeholder={t.namePh} value={name} maxLength={20}
+          onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&conn==="online"&&joinClass()} />
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginTop:8}}>
+          <button className="btn" disabled={!name.trim() || conn!=="online"} onClick={joinClass}>
+            {conn==="checking"? t.connecting : t.joinClass}
           </button>
+          <button className="btn ghost" disabled={!name.trim()} onClick={soloStart}>{t.solo}</button>
         </div>
         <details style={{marginTop:16, fontSize:13.5}}>
           <summary style={{cursor:"pointer", fontWeight:700}}>{t.howto}</summary>
-          <ol style={{margin:"10px 0 0 18px", color:"var(--muted)"}}>
-            <li>{t.howto1([t.long, t.short])}</li>
-            <li>{t.howto2}</li>
-            {cfg.infoFeature && <li>{t.howto3(KRW(cfg.infoPrice))}</li>}
-            <li>{t.howto4}</li>
-          </ol>
+          <BriefingList/>
         </details>
         <h3 className="mini">{t.lb}</h3>
         <Leaderboard rows={lb} limit={5} />
@@ -842,13 +1085,53 @@ function App(){
   if(view==="admin"){
     const Row = ({tt,d,children}) => <div className="row"><div><div className="t">{tt}</div>{d&&<div className="d">{d}</div>}</div>{children}</div>;
     const Switch = ({on,set}) => <label className="switch"><input type="checkbox" checked={on} onChange={e=>set(e.target.checked)} /><span className="track"></span></label>;
-    return <div><TopBar/><DemoBanner/>
+    const phase = RS? (RS.phase||"lobby") : "lobby";
+    const playing = Object.values(RP).filter(p=>p.playing).length;
+    const bets = RS? (RB[RS.round]||{}) : {};
+    return <div><TopBar/><DemoBanner/><SampleWarn/>
       <div className="wrap fade" style={{maxWidth:760}}>
         <div className="admin-h">
           <h1>{lang==="ko"?"편집국":"Newsroom"} <span className="muted" style={{fontSize:14, fontWeight:400}}>{t.admin}</span></h1>
           <span className="saveflash">{savedMsg || (conn==="demo"? t.demoTag : t.online)}</span>
         </div>
         <p className="muted" style={{fontSize:13, marginBottom:16}}>{t.adminNote}</p>
+
+        <div className="card tight" style={{marginBottom:16, borderWidth:2, borderColor:"var(--ink)"}}>
+          <p className="section-t">{t.s0}</p>
+          <div className="row" style={{borderBottom:"none", paddingBottom:4}}>
+            <div>
+              <div className="t">{t.phaseName[phase]}{RS && phase!=="lobby" && <span className="muted" style={{fontWeight:400}}> · {t.stRound((RS.round||0)+1, RS.total||0)}</span>}</div>
+              <div className="d">{t.stPlayers(Object.keys(RP).length, playing)}
+                {phase==="betting" && RS.turnEndsAt && <b style={{marginLeft:8}}>⏱ {mmss(RS.turnEndsAt - now())}</b>}</div>
+            </div>
+            <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+              {phase==="lobby"    && <button className="btn sm" disabled={conn!=="online"} onClick={hostStart}>{t.startGame}</button>}
+              {phase==="betting"  && <button className="btn sm" onClick={hostSettle}>{t.endTurn}</button>}
+              {phase==="reveal"   && ((RS.round+1) < RS.total
+                    ? <button className="btn sm" onClick={hostNext}>{t.nextRound}</button>
+                    : <button className="btn sm" onClick={hostEnd}>{t.endGame}</button>)}
+              {phase!=="lobby"    && <button className="textbtn danger" onClick={()=>{ if(confirm(t.resetRoomC)) hostReset(); }}>{t.resetRoom}</button>}
+            </div>
+          </div>
+          <div className="row">
+            <div><div className="t">{t.turnSec}: <b className="tnum">{cfg.turnSeconds||60}s</b></div></div>
+            <input type="range" min="20" max="180" step="10" value={cfg.turnSeconds||60} style={{width:180}}
+              onChange={e=>saveCfg({...cfg, turnSeconds:+e.target.value})} />
+          </div>
+          {Object.keys(RP).length===0
+            ? <p className="muted" style={{fontSize:12.5, padding:"8px 0 2px"}}>{t.needPlayers}</p>
+            : <div style={{maxHeight:220, overflowY:"auto", marginTop:6}}>
+              <table><thead><tr><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.colBet}</th></tr></thead>
+                <tbody>{Object.entries(RP).sort((a,b)=>b[1].capital-a[1].capital).map(([id2,p])=>{
+                  const b = bets[id2];
+                  return <tr key={id2}>
+                    <td>{p.name}{p.busted && " 💀"}{!p.playing && <span className="muted"> ⌛</span>}</td>
+                    <td className="r tnum">{KRW(p.capital)}</td>
+                    <td className="r tnum">{phase==="betting" ? (b ? ((b.dir===1?"▲":b.dir===-1?"▼":"·")+" "+(b.size||0)+"%"+(b.bought?" 📰":"")) : t.noBet) : ""}</td>
+                  </tr>;})}
+                </tbody></table>
+            </div>}
+        </div>
 
         <div className="card tight" style={{marginBottom:16}}>
           <p className="section-t">{t.s1}</p>
@@ -879,7 +1162,7 @@ function App(){
 
         <div className="card tight" style={{marginBottom:16}}>
           <p className="section-t">{t.s3}</p>
-          <Row tt={t.rRounds} d={t.rRoundsD(db.length)}>
+          <Row tt={t.rRounds} d={t.rRoundsD(anyDb.length)}>
             <input type="number" min="1" max="50" style={{width:90, textAlign:"right"}} value={cfg.roundsPerSession}
               onChange={e=>saveCfg({...cfg, roundsPerSession:Math.max(1, Math.min(50, +e.target.value||1))})} />
           </Row>
@@ -905,6 +1188,189 @@ function App(){
       </div></div>;
   }
 
+  /* ----- CLASS screens (driven by shared phase) ----- */
+  if(view==="class"){
+    const me = RP[pid];
+    const phase = RS? (RS.phase||"lobby") : "lobby";
+    const cfgS = (RS&&RS.cfg)||cfg;
+    const spect = me && !me.playing && (phase==="betting"||phase==="reveal");
+
+    if(phase==="lobby" || !me || spect && phase!=="reveal" && false) {}
+    if(phase==="lobby") return <div><TopBar/><DemoBanner/><SampleWarn/>
+      <div className="wrap narrow fade">
+        <div className="card">
+          <h2 className="serif" style={{fontSize:24, fontWeight:900}}>{t.waitTitle}</h2>
+          <p className="muted" style={{fontSize:13.5, marginTop:4}}>{t.waitSub}</p>
+          <div className="kv">
+            <div className="box"><div className="k">{t.kvCapital}</div><div className="v tnum">{KRW(START_CAPITAL)}</div></div>
+            <div className="box"><div className="k">{t.kvRounds}</div><div className="v">{t.kvRoundsVal(Math.min(cfg.roundsPerSession, anyDb.length))}</div></div>
+            <div className="box"><div className="k">{t.kvInfo}</div><div className="v">{cfg.infoFeature? t.kvInfoOn(KRW(cfg.infoPrice)) : t.kvInfoOff}</div></div>
+            <div className="box"><div className="k">⏱</div><div className="v tnum">{(cfg.turnSeconds||60)}s / round</div></div>
+          </div>
+          <h3 className="mini">{t.waitBrief}</h3>
+          <BriefingList/>
+          <h3 className="mini">{t.playersHere(Object.keys(RP).length)}</h3>
+          <div style={{display:"flex", flexWrap:"wrap", gap:6}}>
+            {Object.entries(RP).map(([id2,p])=><span key={id2} className="pill" style={id2===pid?{borderColor:"var(--ink)", color:"var(--ink)", fontWeight:700}:{}}>{p.name}</span>)}
+          </div>
+          <div style={{marginTop:16}}><button className="textbtn" onClick={leaveRoom}>{t.leave}</button></div>
+        </div>
+      </div></div>;
+
+    if(spect) return <div><TopBar/>
+      <div className="wrap narrow fade"><div className="card">
+        <h2 className="serif" style={{fontSize:22, fontWeight:900}}>{t.waitTitle}</h2>
+        <p className="muted" style={{fontSize:13.5, margin:"6px 0 14px"}}>{t.waitLate}</p>
+        <h3 className="mini">{t.standings}</h3><Standings/>
+      </div></div></div>;
+
+    const d = RS && dayById(RS.dateIds[RS.round]);
+
+    if(phase==="betting" && d){
+      const remain = RS.turnEndsAt ? RS.turnEndsAt - now() : 0;
+      const frac = RS.turnEndsAt ? Math.max(0, Math.min(1, remain / ((cfg.turnSeconds||60)*1000))) : 0;
+      const mineBet = RB[RS.round]&&RB[RS.round][pid];
+      const hasBet = !!(mineBet && (mineBet.pos!=null || mineBet.dir!=null));
+      const price = cfgS.infoPrice;
+      const dispCap = me.capital - (myBet.bought? price:0);
+      const iAmOut = !!me.busted;
+      const pos = myBet.pos||0, absPos = Math.abs(pos);
+      return <div><TopBar/>
+        <div className="wrap fade">
+          <div className="card tight" style={{marginBottom:14, display:"flex", alignItems:"center", gap:14}}>
+            <span className="progress">{t.round} {(RS.round||0)+1} / {RS.total}</span>
+            <div style={{flex:1, height:8, background:"#e8e3d4", borderRadius:99, overflow:"hidden"}}>
+              <div style={{width:(frac*100)+"%", height:"100%", background: remain<10000? "var(--up)":"var(--ink)", transition:"width .4s linear"}}></div>
+            </div>
+            <b className="tnum" style={{fontSize:16, color: remain<10000? "var(--up)":"var(--ink)"}}>
+              {remain>0? mmss(remain) : t.settling}</b>
+          </div>
+          <div className="grid play">
+            <div className="card">
+              <div className="masthead">
+                <div className="edition"><span>{t.edition}</span><span>{t.dateHidden}</span></div>
+                <h2>{t.masthead}</h2>
+                <div style={{fontSize:11.5, color:"var(--muted)"}}>{t.mastheadSub}</div>
+              </div>
+              <MarketStrip m={d.market}/>
+              <Headlines items={d.headlines} />
+              {cfgS.infoFeature && !iAmOut && <div>
+                <div className="cutline"><span>{t.infoCut}</span></div>
+                {!myBet.bought
+                  ? <div>
+                      <button className="btn ghost" disabled={me.capital <= price || remain<=0} onClick={classBuyInfo}>{t.buyInfo(KRW(price))}</button>
+                      <p className="footer-note">{t.feeNote}</p>
+                    </div>
+                  : <div className="tomorrow">
+                      <div className="thead">
+                        <span>{t.tomorrow} <span className="muted" style={{fontWeight:400, fontSize:11}}>{cfgS.revealMode? t.revealTag : t.noisyTag}</span></span>
+                        <span className="up" style={{fontSize:12, fontWeight:800}}>{t.paid(KRW(price))}</span>
+                      </div>
+                      <Headlines items={cfgS.revealMode? d.next_day_reveal : d.next_day_noisy} />
+                    </div>}
+              </div>}
+            </div>
+            <div style={{display:"grid", gap:14}}>
+              {iAmOut
+              ? <div className="card" style={{textAlign:"center"}}>
+                  <div style={{fontSize:34}}>💀</div>
+                  <h3 className="serif" style={{fontWeight:900, fontSize:18, margin:"6px 0"}}>{t.wiped}</h3>
+                  <p className="muted" style={{fontSize:13}}>{t.wipedMsg}</p>
+                </div>
+              : <div className="card">
+                <div style={{display:"flex", justifyContent:"space-between", marginBottom:14}}>
+                  <span className="progress tnum">{t.capitalAvail} {KRW(dispCap)}</span>
+                  {hasBet && <span className="progress" style={{color:"var(--accent)"}}>✓</span>}
+                </div>
+                <p className="step"><b>{t.stepPos}</b></p>
+                <div style={{textAlign:"center", marginBottom:4}}>
+                  <span className={pos>0?"up":pos<0?"down":"muted"} style={{fontWeight:900, fontSize:19}}>
+                    {pos===0? t.posFlat : pos>0? t.posLong(absPos) : t.posShort(absPos)}
+                  </span>
+                  {absPos>100 && <span className="muted" style={{marginLeft:8, fontSize:12, fontWeight:700}}>{t.lev((absPos/100).toFixed(1))}</span>}
+                </div>
+                {absPos>0 && <div className="muted tnum" style={{textAlign:"center", fontSize:12}}>{KRW(dispCap*absPos/100)}</div>}
+                <input type="range" min={-MAX_POS} max={MAX_POS} step="10" value={pos} disabled={remain<=0}
+                  onChange={e=>setMyBet({...myBet, pos:+e.target.value})} />
+                <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)"}}>
+                  <span>◀ {t.short} {MAX_POS}%</span><span>0</span><span>{t.long} {MAX_POS}% ▶</span>
+                </div>
+                <div className="muted" style={{fontSize:11.5, textAlign:"center", margin:"6px 0 14px"}}>
+                  {absPos>0 ? t.varNote((absPos*VAR95*100).toFixed(1)) : t.varZero}
+                </div>
+                <p className="step"><b>{t.stepOrder}</b></p>
+                <button className="btn" disabled={pos===0 || remain<=0} onClick={()=>writeBet({...myBet})}>{hasBet? t.resubmit : t.submit}</button>
+                <div style={{textAlign:"center", marginTop:10}}>
+                  <button className="textbtn" disabled={remain<=0} onClick={()=>writeBet({...myBet, pos:0})}>{t.pass}</button>
+                </div>
+                {hasBet && <p className="footer-note" style={{textAlign:"center"}}>{t.submitted}</p>}
+              </div>}
+              <div className="card tight">
+                <h3 className="mini" style={{margin:"0 0 8px"}}>{t.standings}</h3>
+                <Standings limit={7}/>
+                {lang==="en" && <div className="muted" style={{fontSize:11, marginTop:6}}>{t.aiLangNote}</div>}
+              </div>
+            </div>
+          </div>
+        </div></div>;
+    }
+
+    if(phase==="reveal" && d){
+      const result = RR[RS.round];
+      const mine = result && result.players && result.players[pid];
+      return <div><TopBar/>
+        <div className="wrap fade">
+          <div className="card hero">
+            <div className="label">{t.resultLabel} · {t.round} {(RS.round||0)+1}/{RS.total}</div>
+            <div className={"big "+cls(result? result.r:0)}>{result? pctf(result.r):"…"}</div>
+            {mine && (mine.dir!==0
+              ? <div className={"verdict "+((mine.dir*(result.r)>0)? "hit"+(mine.dir===-1?" short":"") : "miss")}>{(mine.dir*result.r>0)? t.hit : t.miss}</div>
+              : <div className="verdict miss">{t.sat}</div>)}
+            {mine && <div style={{marginTop:14, fontSize:14}}>
+              {t.myChoice}: <b>{dirLabel(mine.dir)}</b>{mine.dir!==0 && <> · {mine.size}%</>}{mine.bought && <> · {t.infoFee} {KRW((RS.cfg||cfg).infoPrice)}</>}
+            </div>}
+            {mine && <div className={"tnum "+cls(mine.pnl-0.000001)} style={{fontSize:26, fontWeight:900, marginTop:2}}>{signKRW(mine.pnl)}</div>}
+            {mine && <div className="muted tnum" style={{fontSize:13}}>{t.balance} {KRW(mine.capital)}</div>}
+            {me.busted && !mine && <p style={{marginTop:12, fontWeight:800}}>{t.wiped}</p>}
+            <p className="muted" style={{fontSize:12.5, marginTop:12}}>{t.waitNext}</p>
+          </div>
+          <div className="grid play" style={{marginTop:16, alignItems:"start"}}>
+            <div className="card tight">
+              <h3 className="mini" style={{margin:"0 0 8px"}}>{t.standings}</h3>
+              <Standings/>
+            </div>
+            <div style={{display:"grid", gap:12}}>
+              {result && Object.entries(result.bots||{}).map(([b,x])=>
+                <div key={b} className="card tight">
+                  <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
+                    <span className={"badge "+BOT_META[b].cls}>{bName(b)}</span>
+                    <b className={"tnum "+cls(x.pnl-0.000001)}>{signKRW(x.pnl)}</b>
+                  </div>
+                  <div style={{fontWeight:800, fontSize:14}}>{dirLabel(x.dir)}{x.dir!==0 && ` · ${x.size}%`}{x.buys && <span style={{marginLeft:6, fontWeight:600, fontSize:11.5, color:"#5b3aa6"}}>{t.infoBadge}</span>}</div>
+                  <p className="muted" style={{fontSize:12.5, marginTop:6}}>“{x.rationale}”</p>
+                </div>)}
+            </div>
+          </div>
+        </div></div>;
+    }
+
+    if(phase==="finished"){
+      return <div><TopBar/>
+        <div className="wrap narrow fade"><div className="card">
+          <h2 className="serif" style={{fontSize:24, fontWeight:900, marginBottom:4}}>{t.finalTitle}</h2>
+          <p className="muted" style={{fontSize:13, marginBottom:14}}>{conn==="demo"? t.lbNoteDemo : t.lbNoteOn}</p>
+          <h3 className="mini">{t.standings}</h3>
+          <Standings/>
+          <h3 className="mini">{t.lb}</h3>
+          <Leaderboard rows={lb} limit={10}/>
+          <button className="btn" style={{marginTop:18}} onClick={()=>setView("lobby")}>{t.again}</button>
+        </div></div></div>;
+    }
+
+    return <div><TopBar/><div className="wrap"><p className="muted">{t.connecting}</p></div></div>;
+  }
+
+  /* ----- SOLO screens ----- */
   if(view==="play" && day) return <div><TopBar/>
     <div className="wrap fade">
       <div className="grid play">
@@ -914,12 +1380,13 @@ function App(){
             <h2>{t.masthead}</h2>
             <div style={{fontSize:11.5, color:"var(--muted)"}}>{t.mastheadSub}</div>
           </div>
+          <MarketStrip m={day.market}/>
           <Headlines items={day.headlines} />
           {sc.infoFeature && <div>
             <div className="cutline"><span>{t.infoCut}</span></div>
             {!bought
               ? <div>
-                  <button className="btn ghost" disabled={cap < sc.infoPrice} onClick={buyInfo}>{t.buyInfo(KRW(sc.infoPrice))}</button>
+                  <button className="btn ghost" disabled={cap < sc.infoPrice} onClick={soloBuy}>{t.buyInfo(KRW(sc.infoPrice))}</button>
                   <p className="footer-note">{t.feeNote}</p>
                 </div>
               : <div className="tomorrow">
@@ -931,36 +1398,33 @@ function App(){
                 </div>}
           </div>}
         </div>
-
         <div style={{display:"grid", gap:14}}>
           <div className="card">
             <div style={{display:"flex", justifyContent:"space-between", marginBottom:14}}>
               <span className="progress">{t.round} {i+1} / {days.length}</span>
               <span className="progress tnum">{t.capitalAvail} {KRW(cap)}</span>
             </div>
-            <p className="step"><b>{t.step1}</b></p>
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16}}>
-              <button className={"btn long"+(dir===1?" on":"")} onClick={()=>setDir(1)}>{t.long}</button>
-              <button className={"btn short"+(dir===-1?" on":"")} onClick={()=>setDir(-1)}>{t.short}</button>
+            <p className="step"><b>{t.stepPos}</b></p>
+            <div style={{textAlign:"center", marginBottom:4}}>
+              <span className={pos>0?"up":pos<0?"down":"muted"} style={{fontWeight:900, fontSize:19}}>
+                {pos===0? t.posFlat : pos>0? t.posLong(Math.abs(pos)) : t.posShort(Math.abs(pos))}
+              </span>
+              {Math.abs(pos)>100 && <span className="muted" style={{marginLeft:8, fontSize:12, fontWeight:700}}>{t.lev((Math.abs(pos)/100).toFixed(1))}</span>}
             </div>
-            <p className="step"><b>{t.step2}</b> — <span className="tnum" style={{color:"var(--ink)"}}>{size}% = {KRW(cap*size/100)}</span></p>
-            <input type="range" min="0" max="100" step="5" value={size} onChange={e=>setSize(+e.target.value)} />
-            <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)", marginBottom:16}}>
-              <span>0%</span><span>50%</span><span>100%</span>
+            {pos!==0 && <div className="muted tnum" style={{textAlign:"center", fontSize:12}}>{KRW(cap*Math.abs(pos)/100)}</div>}
+            <input type="range" min={-MAX_POS} max={MAX_POS} step="10" value={pos} onChange={e=>setPos(+e.target.value)} />
+            <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)"}}>
+              <span>◀ {t.short} {MAX_POS}%</span><span>0</span><span>{t.long} {MAX_POS}% ▶</span>
             </div>
-            <p className="step"><b>{t.step3}</b></p>
-            <button className="btn" disabled={!dir || size===0} onClick={()=>settle(dir,size)}>{t.submit}</button>
+            <div className="muted" style={{fontSize:11.5, textAlign:"center", margin:"6px 0 14px"}}>
+              {pos!==0 ? t.varNote((Math.abs(pos)*VAR95*100).toFixed(1)) : t.varZero}
+            </div>
+            <p className="step"><b>{t.stepOrder}</b></p>
+            <button className="btn" disabled={pos===0} onClick={()=>soloSettle(pos>0?1:-1, Math.abs(pos))}>{t.submit}</button>
             <div style={{textAlign:"center", marginTop:10}}>
-              <button className="textbtn" onClick={()=>settle(0,0)}>{t.pass}</button>
+              <button className="textbtn" onClick={()=>soloSettle(0,0)}>{t.pass}</button>
             </div>
           </div>
-          {Object.keys(botCaps).length>0 && <div className="card tight" style={{fontSize:12.5, color:"var(--muted)"}}>
-            <b style={{color:"var(--ink)"}}>{t.aiBox}</b> — {t.aiBoxD}
-            <div style={{marginTop:8}}>
-              {Object.keys(botCaps).map(b=><span key={b} className="pill"><span className={"badge "+BOT_META[b].cls} style={{marginRight:6}}>{bName(b)}</span><span className="tnum">{KRW(botCaps[b])}</span></span>)}
-            </div>
-            {t.aiLangNote && <div style={{marginTop:6, fontSize:11}}>{t.aiLangNote}</div>}
-          </div>}
         </div>
       </div>
     </div></div>;
@@ -981,7 +1445,6 @@ function App(){
           <div className={"tnum "+cls(res.pnl - 0.000001)} style={{fontSize:26, fontWeight:900, marginTop:2}}>{signKRW(res.pnl)}</div>
           <div className="muted tnum" style={{fontSize:13}}>{t.balance} {KRW(cap)}</div>
         </div>
-
         {Object.keys(res.bres).length>0 && <div className="grid bots" style={{marginTop:16}}>
           {Object.keys(res.bres).map(b=>{ const x=res.bres[b]; return (
             <div key={b} className="card tight">
@@ -994,33 +1457,32 @@ function App(){
               <div className="muted tnum" style={{fontSize:11.5, marginTop:8}}>{t.balance} {KRW(x.cap)}</div>
             </div>);})}
         </div>}
-
-        <button className="btn" style={{marginTop:18}} onClick={next}>
+        <button className="btn" style={{marginTop:18}} onClick={soloNext}>
           {(i+1>=days.length || cap<=0)? t.finalBtn : t.next}
         </button>
       </div></div>;
   }
 
   if(view==="final"){
-    const rows = [{name:name.trim()+" "+t.me, cap}, ...Object.keys(botCaps).map(b=>({name:bName(b), cap:botCaps[b]}))]
-      .sort((a,b)=>b.cap-a.cap);
+    const rows = [{name:name.trim()+" "+t.me, cap2:cap}, ...Object.keys(botCaps).map(b=>({name:bName(b), cap2:botCaps[b]}))]
+      .sort((a,b)=>b.cap2-a.cap2);
     return <div><TopBar/>
       <div className="wrap narrow fade">
         <div className="card">
           <h2 className="serif" style={{fontSize:24, fontWeight:900, marginBottom:4}}>{t.finalTitle}</h2>
-          <p className="muted" style={{fontSize:13, marginBottom:14}}>{cap<=0? t.busted : t.completed(nRounds)}</p>
+          <p className="muted" style={{fontSize:13, marginBottom:14}}>{cap<RUIN_FLOOR? t.busted : t.completed(nRounds)}</p>
           <table>
             <thead><tr><th>{t.thRank}</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.thRet}</th></tr></thead>
             <tbody>{rows.map((e,k)=>
               <tr key={k} className={e.name.endsWith(t.me)? "me":""}>
                 <td className="tnum">{k+1}</td><td>{e.name}</td>
-                <td className="r tnum"><b>{KRW(e.cap)}</b></td>
-                <td className={"r tnum "+cls(e.cap-START_CAPITAL)}>{pctf((e.cap-START_CAPITAL)/START_CAPITAL)}</td>
+                <td className="r tnum"><b>{KRW(e.cap2)}</b></td>
+                <td className={"r tnum "+cls(e.cap2-START_CAPITAL)}>{pctf((e.cap2-START_CAPITAL)/START_CAPITAL)}</td>
               </tr>)}
             </tbody>
           </table>
           <p className="footer-note">{conn==="demo"? t.lbNoteDemo : t.lbNoteOn}</p>
-          <h3 className="mini">{t.fullLb}</h3>
+          <h3 className="mini">{t.lb}</h3>
           <Leaderboard rows={lb} limit={15} />
           <button className="btn" style={{marginTop:18}} onClick={()=>setView("lobby")}>{t.again}</button>
         </div>
