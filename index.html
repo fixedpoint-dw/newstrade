@@ -554,6 +554,7 @@ en: {
   rBotsBuy:"Bots may buy info", rBotsBuyD:"The advanced bot decides for itself via cost-benefit.",
   rRounds:"Rounds per game", rRoundsD:n=>`Sampled without replacement from ${n} days.`,
   rGap:"Show overnight gap", rGapD:"Today's open vs yesterday's close — knowable at bet time. Turn off if it feels too revealing.",
+  rSolo:"Solo practice mode", rSoloD:"Off by default — with unlimited replays, students could memorize the days before class.",
   dataD:"Put game_database_en.json / game_database_ko.json next to index.html in the repo.",
   dataLoaded:n=>`loaded · ${n} days`, dataMissing:"not found → built-in sample", reload:"Reload files",
   lbReset:"Reset leaderboard", lbResetC:"Delete the entire leaderboard? This cannot be undone.",
@@ -630,6 +631,7 @@ ko: {
   rBotsBuy:"봇의 정보 구매 허용", rBotsBuyD:"고급 봇은 비용-편익을 따져 스스로 판단합니다.",
   rRounds:"게임당 라운드 수", rRoundsD:n=>`${n}일 중에서 중복 없이 추출됩니다.`,
   rGap:"오버나이트 갭 표시", rGapD:"당일 시가 vs 전일 종가 — 베팅 시점에 알 수 있는 정보입니다. 과하다고 판단되면 끄세요.",
+  rSolo:"혼자 연습 모드", rSoloD:"기본 꺼짐 — 무제한 반복 플레이로 수업 전에 날짜와 정답을 외울 수 있습니다.",
   dataD:"저장소에서 index.html과 같은 폴더에 game_database_en.json / game_database_ko.json을 두세요.",
   dataLoaded:n=>`로드됨 · ${n}일`, dataMissing:"없음 → 내장 샘플 사용", reload:"파일 다시 불러오기",
   lbReset:"리더보드 초기화", lbResetC:"리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.",
@@ -670,7 +672,7 @@ ko: {
 const DEFAULT_CONFIG = {
   bots:{ novice:true, intermediate:true, advanced:true },
   infoFeature:true, infoPrice:10000, revealMode:false, botsCanBuy:true,
-  roundsPerSession:10, turnSeconds:60, revealSeconds:5, showGap:true
+  roundsPerSession:10, turnSeconds:60, revealSeconds:5, showGap:true, soloEnabled:false
 };
 
 const START_CAPITAL = 1000000;
@@ -1079,11 +1081,11 @@ function App(){
         </div>
         <input type="text" placeholder={t.namePh} value={name} maxLength={20}
           onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&conn==="online"&&joinClass()} />
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginTop:8}}>
+        <div style={{display:"grid", gridTemplateColumns:cfg.soloEnabled? "1fr 1fr" : "1fr", gap:8, marginTop:8}}>
           <button className="btn" disabled={!name.trim() || conn!=="online"} onClick={joinClass}>
             {conn==="checking"? t.connecting : t.joinClass}
           </button>
-          <button className="btn ghost" disabled={!name.trim()} onClick={soloStart}>{t.solo}</button>
+          {cfg.soloEnabled && <button className="btn ghost" disabled={!name.trim()} onClick={soloStart}>{t.solo}</button>}
         </div>
         <details style={{marginTop:16, fontSize:13.5}}>
           <summary style={{cursor:"pointer", fontWeight:700}}>{t.howto}</summary>
@@ -1197,6 +1199,9 @@ function App(){
           </Row>
           <Row tt={t.rGap} d={t.rGapD}>
             <Switch on={cfg.showGap!==false} set={v=>saveCfg({...cfg, showGap:v})} />
+          </Row>
+          <Row tt={t.rSolo} d={t.rSoloD}>
+            <Switch on={!!cfg.soloEnabled} set={v=>saveCfg({...cfg, soloEnabled:v})} />
           </Row>
         </div>
 
