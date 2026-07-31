@@ -152,70 +152,70 @@ h3.mini{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(
 
 <script>
 /* ================================================================
-   ① 설정: 이 두 곳만 수정하면 됩니다
+   ① 설정 / Configuration
    ================================================================ */
-
-// 1) Firebase 콘솔 → 프로젝트 설정 → 웹 앱에서 복사한 firebaseConfig 붙여넣기
-//    (포트폴리오 게임과 같은 프로젝트를 써도 됩니다. 데이터 경로가 분리되어 있습니다.)
+// Firebase: bubblelab 게임과 같은 프로젝트(bubblelab0715)의 RTDB를 그대로 사용합니다.
+// (bubblelab index.html에서 복사한 실제 설정값)
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxx"
+  apiKey: "AIzaSyDjH0oMe07iiv94pYuuAg1FOe4YwREdNAI",
+  authDomain: "bubblelab0715.firebaseapp.com",
+  databaseURL: "https://bubblelab0715-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bubblelab0715",
+  storageBucket: "bubblelab0715.firebasestorage.app",
+  messagingSenderId: "823611830309",
+  appId: "1:823611830309:web:ac9cf1ad32309fc4c98fcc",
+  measurementId: "G-G9NT9KHH4N"
 };
+const FB_PATH = "morningPaperTrader";      // rules에 추가한 경로와 일치
 
-// 2) 관리자 비밀번호 (배포 전 반드시 변경!)
-const ADMIN_PASSCODE = "admin1234";
-
-// 3) 게임이 베팅하는 지수 이름 (표시용). 한국판으로 돌리려면 "KOSPI"로 변경.
-const INDEX_NAME = "S&P 500";
+const ADMIN_PASSCODE = "arbitrageur";
+const INDEX_NAME = "S&P 500";              // 베팅 대상 지수 (표시용)
+const DB_FILES = { en: "game_database_en.json", ko: "game_database_ko.json" };
 
 /* ================================================================
-   데이터 계층: Firebase 연결 시 실시간 공유, 미연결 시 데모 모드
+   데이터 계층: Firebase 연결 → 실패 시 데모 모드
    ================================================================ */
-const FB_PATH = "morningPaperTrader"; // 포트폴리오 게임과 충돌하지 않는 별도 경로
-
-let fbdb = null, DEMO = true;
-try {
-  if (typeof firebase !== "undefined" && firebaseConfig.apiKey && firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY") {
+const fbReady = (async () => {
+  try {
+    if (typeof firebase === "undefined") return null;
     firebase.initializeApp(firebaseConfig);
-    fbdb = firebase.database();
-    DEMO = false;
-  }
-} catch (e) { console.warn("Firebase init 실패 → 데모 모드", e); }
+    return firebase.database();
+  } catch (e) { console.warn("Firebase init 실패 → 데모 모드", e); return null; }
+})();
 
 // 데모 모드 저장소 (localStorage 실패 시 메모리)
 const _mem = {};
 function lsGet(k){ try{ const v = localStorage.getItem(k); return v==null? (_mem[k]??null) : v; }catch(e){ return _mem[k]??null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} _mem[k]=v; }
-const _subs = {}; // 데모 모드 실시간 흉내
+const _subs = {};
 function _emit(k,v){ (_subs[k]||[]).forEach(cb=>cb(v)); }
 
 const Store = {
-  on(key, cb){                       // key: "config" | "leaderboard" | "database"
-    if (fbdb) { fbdb.ref(FB_PATH+"/"+key).on("value", s => cb(s.val())); }
-    else {
-      (_subs[key]=_subs[key]||[]).push(cb);
-      const raw = lsGet("mpt_"+key);
-      cb(raw ? JSON.parse(raw) : null);
-    }
+  on(key, cb){
+    fbReady.then(db=>{
+      if (db) db.ref(FB_PATH+"/"+key).on("value", s => cb(s.val()));
+      else {
+        (_subs[key]=_subs[key]||[]).push(cb);
+        const raw = lsGet("mpt_"+key); cb(raw ? JSON.parse(raw) : null);
+      }
+    });
   },
-  set(key, val){
-    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).set(val);
-    lsSet("mpt_"+key, JSON.stringify(val)); _emit(key,val); return Promise.resolve();
+  async set(key, val){
+    const db = await fbReady;
+    if (db) return db.ref(FB_PATH+"/"+key).set(val);
+    lsSet("mpt_"+key, JSON.stringify(val)); _emit(key,val);
   },
-  push(key, val){
-    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).push(val);
+  async push(key, val){
+    const db = await fbReady;
+    if (db) return db.ref(FB_PATH+"/"+key).push(val);
     const raw = lsGet("mpt_"+key); const obj = raw? JSON.parse(raw) : {};
     obj["k"+Date.now()+Math.random().toString(36).slice(2,6)] = val;
-    lsSet("mpt_"+key, JSON.stringify(obj)); _emit(key,obj); return Promise.resolve();
+    lsSet("mpt_"+key, JSON.stringify(obj)); _emit(key,obj);
   },
-  remove(key){
-    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).remove();
-    lsSet("mpt_"+key, "null"); _emit(key,null); return Promise.resolve();
+  async remove(key){
+    const db = await fbReady;
+    if (db) return db.ref(FB_PATH+"/"+key).remove();
+    lsSet("mpt_"+key, "null"); _emit(key,null);
   }
 };
 </script>
@@ -505,10 +505,119 @@ const SAMPLE_DB = [
 ];
 
 const BOT_META = {
-  novice:      { name:"초급 봇", cls:"novice",      desc:"헤드라인 분위기에 직관적으로 크게 베팅" },
-  intermediate:{ name:"중급 봇", cls:"intermediate", desc:"거시 논리로 호재·악재의 상쇄를 계산" },
-  advanced:    { name:"고급 봇", cls:"advanced",     desc:"'이미 가격에 반영됐는가'와 정보의 가치까지 판단" }
+  novice:      { cls:"novice",       name:{en:"Novice Bot",ko:"초급 봇"},
+                 desc:{en:"Bets big on headline sentiment alone",ko:"헤드라인 분위기에 직관적으로 크게 베팅"} },
+  intermediate:{ cls:"intermediate", name:{en:"Intermediate Bot",ko:"중급 봇"},
+                 desc:{en:"Weighs offsetting macro factors",ko:"거시 논리로 호재·악재의 상쇄를 계산"} },
+  advanced:    { cls:"advanced",     name:{en:"Advanced Bot",ko:"고급 봇"},
+                 desc:{en:"Asks what's already priced in, values information",ko:"'이미 가격에 반영됐는가'와 정보의 가치까지 판단"} }
 };
+
+const STR = {
+en: {
+  brand:"The Morning Wire", tagline:`Morning Paper Trader · ${INDEX_NAME} × Market Efficiency`,
+  admin:"Admin", toStudent:"Player view",
+  demoBanner:["Demo mode","— Firebase not reachable. Scores stay in this browser only."],
+  connecting:"Connecting…",
+  lobbyTitle1:"Armed with only this morning's paper,", lobbyTitle2:`can you beat the ${INDEX_NAME}?`,
+  lobbyIntro:`Each round shows real pre-open macro headlines from a hidden past trading day. Decide whether the ${INDEX_NAME} rose or fell that day (open→close), and how much to bet. You compete against AI bots reading the same headlines.`,
+  kvCapital:"Starting capital", kvRounds:"Rounds", kvRoundsVal:n=>`${n} · no repeated days`,
+  kvInfo:"Information market", kvInfoOn:p=>`Tomorrow's paper for ${p}`, kvInfoOff:"Off",
+  kvBots:"AI rivals", kvBotsNone:"None",
+  namePh:"Name or nickname", start:"Start trading",
+  howto:"How to play (30 seconds)",
+  howto1:s=>`Read the headlines and choose ${s[0]} or ${s[1]}.`, long:"Long ▲", short:"Short ▼",
+  howto2:"Pick your bet size (0–100% of capital). Sitting out is a strategy too.",
+  howto3:p=>`Pay ${p} to peek at tomorrow's paper. Whether it's worth it — that's your call.`,
+  howto4:`Your P&L settles on the actual ${INDEX_NAME} return of that day. The bots' reasoning is revealed too.`,
+  lb:"Leaderboard", lbEmpty:"No records yet. Be the first trader.",
+  disclaimer:`Educational simulation on real historical ${INDEX_NAME} data. Not investment advice.`,
+  loginTitle:"Admin login", pw:"Password", pwWrong:"Wrong password.", back:"← Back",
+  pwHint:"Change ADMIN_PASSCODE at the top of index.html.",
+  online:"Live sync on", demoTag:"Demo mode", saved:"Saved ✓",
+  adminNote:"Changes apply to everyone instantly, starting from each player's next game.",
+  s1:"① AI rivals", s2:"② Information market", s2b:"(Grossman-Stiglitz)", s3:"③ Game rules", s4:"④ Data files", s5:"⑤ Leaderboard",
+  rInfo:"Sell tomorrow's paper", rInfoD:"Players can pay to preview the next morning's headlines.",
+  rPrice:"Price (KRW)", rPriceD:"Default ₩10,000 — roughly the expected profit of perfect foresight.",
+  rReveal:"Reveal mode", rRevealD:"Includes market-wrap stories — effectively leaks the answer (insider experiment). Default: noisy.",
+  rBotsBuy:"Bots may buy info", rBotsBuyD:"The advanced bot decides for itself via cost-benefit.",
+  rRounds:"Rounds per session", rRoundsD:n=>`Sampled without replacement from ${n} days.`,
+  dataD:"Put game_database_en.json / game_database_ko.json next to index.html in the repo.",
+  dataLoaded:n=>`loaded · ${n} days`, dataMissing:"not found → built-in sample", reload:"Reload files",
+  lbReset:"Reset leaderboard", lbResetC:"Delete the entire leaderboard? This cannot be undone.",
+  edition:"Global Macro Wire · Reuters/CNBC/AP/NYT", dateHidden:"Date hidden",
+  masthead:"The Morning Wire", mastheadSub:"Macro headlines published before the opening bell",
+  infoCut:"INFORMATION MARKET",
+  buyInfo:p=>`📰 Buy tomorrow's paper — ${p}`,
+  tomorrow:"Tomorrow's Paper", noisyTag:"(market wrap removed)", revealTag:"(full edition)", paid:p=>`−${p} paid`,
+  feeNote:"The fee is charged immediately and is non-refundable, bet or no bet. Is it worth it?",
+  round:"Round", capitalAvail:"Capital",
+  step1:"STEP 1 · Direction", step2:"STEP 2 · Bet size", step3:"STEP 3 · Order",
+  submit:"Place order", pass:"Sit out this round (no bet)",
+  aiBox:"AI rivals", aiBoxD:"placed their orders from the same headlines. Reasoning is revealed with the result.",
+  aiLangNote:"Bot reasoning is written in Korean.",
+  resultLabel:`${INDEX_NAME} return that day`,
+  hit:"Direction: HIT", miss:"Direction: MISS", sat:"Sat out",
+  myChoice:"Your call", infoFee:"info fee", balance:"Balance",
+  dirLong:"Long", dirShort:"Short", dirPass:"Pass", infoBadge:"📰 bought info",
+  next:"Next trading day →", finalBtn:"See final results",
+  finalTitle:"Session over", busted:"You're bust — position sizing is a skill too.", completed:n=>`${n} rounds completed.`,
+  thRank:"Rank", thPlayer:"Player", thCap:"Final capital", thRet:"Return", me:"(you)",
+  lbNoteOn:"Your score is on the class leaderboard.", lbNoteDemo:"Demo mode: score saved in this browser only.",
+  fullLb:"Class leaderboard", again:"Play again",
+},
+ko: {
+  brand:"조간 트레이더", tagline:`Morning Paper Trader · ${INDEX_NAME} × 효율적 시장가설`,
+  admin:"관리자", toStudent:"학생 화면으로",
+  demoBanner:["데모 모드","— Firebase에 연결하지 못했습니다. 기록이 이 브라우저에만 저장됩니다."],
+  connecting:"연결 중…",
+  lobbyTitle1:"오늘 아침 신문만 보고,", lobbyTitle2:`${INDEX_NAME}에 베팅할 수 있을까?`,
+  lobbyIntro:`매 라운드, 실제 과거 어느 거래일의 개장 전 거시경제 헤드라인이 주어집니다 (날짜는 비공개). 그날 ${INDEX_NAME} 지수가 올랐을지 내렸을지(시가→종가) 방향과 베팅 규모를 정하세요. 같은 헤드라인을 읽은 AI 봇들과 경쟁합니다.`,
+  kvCapital:"시작 자본", kvRounds:"라운드", kvRoundsVal:n=>`${n}회 · 날짜 중복 없음`,
+  kvInfo:"정보 시장", kvInfoOn:p=>`내일 조간 ${p}`, kvInfoOff:"꺼짐",
+  kvBots:"AI 경쟁자", kvBotsNone:"없음",
+  namePh:"이름 또는 닉네임", start:"거래 시작",
+  howto:"게임 방법 (30초 설명)",
+  howto1:s=>`조간 헤드라인을 읽고 ${s[0]} 또는 ${s[1]}를 고른다.`, long:"매수 ▲", short:"매도 ▼",
+  howto2:"자본의 몇 %를 걸지 정한다(0–100%). 관망도 전략이다.",
+  howto3:p=>`${p}을 내면 내일 조간을 미리 볼 수 있다. 낼 가치가 있는지는 스스로 판단.`,
+  howto4:`실제 그날의 ${INDEX_NAME} 수익률로 손익이 정산된다. 봇들의 판단 근거도 함께 공개.`,
+  lb:"Leaderboard", lbEmpty:"아직 기록이 없습니다. 첫 번째 트레이더가 되어 보세요.",
+  disclaimer:`실제 과거 ${INDEX_NAME} 데이터 기반 교육용 시뮬레이션입니다. 투자 자문이 아닙니다.`,
+  loginTitle:"관리자 로그인", pw:"비밀번호", pwWrong:"비밀번호가 올바르지 않습니다.", back:"← 돌아가기",
+  pwHint:"비밀번호는 index.html 상단 ADMIN_PASSCODE에서 변경합니다.",
+  online:"실시간 공유 중", demoTag:"데모 모드", saved:"저장됨 ✓",
+  adminNote:"설정은 저장 즉시 모두에게 반영되며, 각자 다음 게임 시작부터 적용됩니다.",
+  s1:"① AI 경쟁자", s2:"② 정보 시장", s2b:"(Grossman-Stiglitz)", s3:"③ 게임 규칙", s4:"④ 데이터 파일", s5:"⑤ 리더보드",
+  rInfo:"내일 조간 구매 기능", rInfoD:"학생이 돈을 내고 다음 날 아침 헤드라인을 미리 볼 수 있게 합니다.",
+  rPrice:"정보 가격 (KRW)", rPriceD:"기본 ₩10,000 — 완전한 예지력의 기대이익과 비슷한 수준입니다.",
+  rReveal:"공개 모드", rRevealD:"시황 기사 포함 = 사실상 정답 노출(내부정보 실험). 기본은 노이즈 모드.",
+  rBotsBuy:"봇의 정보 구매 허용", rBotsBuyD:"고급 봇은 비용-편익을 따져 스스로 판단합니다.",
+  rRounds:"세션당 라운드 수", rRoundsD:n=>`${n}일 중에서 중복 없이 추출됩니다.`,
+  dataD:"저장소에서 index.html과 같은 폴더에 game_database_en.json / game_database_ko.json을 두세요.",
+  dataLoaded:n=>`로드됨 · ${n}일`, dataMissing:"없음 → 내장 샘플 사용", reload:"파일 다시 불러오기",
+  lbReset:"리더보드 초기화", lbResetC:"리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.",
+  edition:"Global Macro Wire · Reuters/CNBC/AP/NYT", dateHidden:"날짜 비공개",
+  masthead:"오늘의 조간", mastheadSub:"개장 전에 발행된 거시경제 헤드라인",
+  infoCut:"INFORMATION MARKET",
+  buyInfo:p=>`📰 내일 조간 미리보기 구매 — ${p}`,
+  tomorrow:"내일의 조간", noisyTag:"(시황기사 제외판)", revealTag:"(전체판)", paid:p=>`−${p} 결제됨`,
+  feeNote:"비용은 베팅 여부와 무관하게 즉시 차감되며 환불되지 않습니다. 낼 가치가 있을까요?",
+  round:"Round", capitalAvail:"가용자본",
+  step1:"STEP 1 · 방향", step2:"STEP 2 · 베팅 규모", step3:"STEP 3 · 주문",
+  submit:"주문 체결", pass:"이번 라운드 관망 (베팅 안 함)",
+  aiBox:"AI 경쟁자", aiBoxD:"같은 헤드라인으로 이미 주문했습니다. 결과에서 근거가 공개됩니다.",
+  aiLangNote:"",
+  resultLabel:`당일 ${INDEX_NAME} 수익률`,
+  hit:"방향 적중", miss:"방향 빗나감", sat:"관망",
+  myChoice:"나의 선택", infoFee:"정보비용", balance:"잔고",
+  dirLong:"매수(Long)", dirShort:"매도(Short)", dirPass:"관망", infoBadge:"📰 정보구매",
+  next:"다음 거래일 →", finalBtn:"최종 결과 보기",
+  finalTitle:"세션 종료", busted:"자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다.", completed:n=>`${n}라운드 완료.`,
+  thRank:"순위", thPlayer:"참가자", thCap:"최종 자본", thRet:"수익률", me:"(나)",
+  lbNoteOn:"기록이 학급 리더보드에 등록되었습니다.", lbNoteDemo:"데모 모드: 기록이 이 브라우저에만 저장되었습니다.",
+  fullLb:"전체 리더보드", again:"다시 도전",
+}};
 
 const DEFAULT_CONFIG = {
   bots:{ novice:true, intermediate:true, advanced:true },
@@ -518,23 +627,35 @@ const DEFAULT_CONFIG = {
 
 const START_CAPITAL = 1000000;
 const KRW = n => "₩" + Math.round(n).toLocaleString("ko-KR");
-const signKRW = n => (n>=0?"+":"−") + KRW(Math.abs(n)).slice(1) ;
+const signKRW = n => (n>=0?"+":"−") + KRW(Math.abs(n)).slice(1);
 const pctf = r => (r>=0?"+":"") + (r*100).toFixed(2) + "%";
 const cls = r => r>0? "up" : r<0? "down" : "muted";
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
 const validDb = d => Array.isArray(d) && d.length>0 && d.every(x=>x && x.headlines && typeof x.kospi_return==="number" && x.bots && x.next_day_noisy && x.next_day_reveal);
 
+async function fetchDb(lang){
+  try{
+    const r = await fetch(DB_FILES[lang], {cache:"no-store"});
+    if(!r.ok) return null;
+    const d = await r.json();
+    return validDb(d) ? d : null;
+  }catch(e){ return null; }
+}
+
 function App(){
+  const [lang, setLang] = useState(lsGet("mpt_lang") || "en");
+  const t = STR[lang];
   const [view, setView] = useState(location.hash==="#admin" ? "adminLogin" : "lobby");
+  const [conn, setConn] = useState("checking");   // checking | online | demo
   const [cfg, setCfg] = useState(DEFAULT_CONFIG);
-  const [remoteDb, setRemoteDb] = useState(null);
+  const [dbs, setDbs] = useState({en:null, ko:null});
   const [lb, setLb] = useState([]);
   const [name, setName] = useState("");
   const [adminOk, setAdminOk] = useState(false);
 
   // 세션 상태
-  const [sc, setSc] = useState(DEFAULT_CONFIG);   // 게임 시작 시점 설정 스냅샷
-  const [days, setDays] = useState([]);           // 이번 세션의 날짜들 (중복 없음)
+  const [sc, setSc] = useState(DEFAULT_CONFIG);
+  const [days, setDays] = useState([]);
   const [i, setI] = useState(0);
   const [cap, setCap] = useState(START_CAPITAL);
   const [botCaps, setBotCaps] = useState({});
@@ -545,19 +666,27 @@ function App(){
   const [nRounds, setNRounds] = useState(0);
   const [savedMsg, setSavedMsg] = useState("");
 
+  const loadFiles = () => { ["en","ko"].forEach(async L => {
+    const d = await fetchDb(L); setDbs(prev => ({...prev, [L]: d}));
+  }); };
+
   useEffect(()=>{
+    fbReady.then(db => setConn(db ? "online" : "demo"));
     Store.on("config", v => { if(v) setCfg({...DEFAULT_CONFIG, ...v, bots:{...DEFAULT_CONFIG.bots, ...(v.bots||{})}}); });
-    Store.on("database", v => setRemoteDb(validDb(v) ? v : null));
     Store.on("leaderboard", v => {
       const arr = v ? Object.values(v) : [];
       arr.sort((a,b)=>b.capital-a.capital);
       setLb(arr.slice(0,100));
     });
+    loadFiles();
   },[]);
 
-  const db = remoteDb || SAMPLE_DB;
+  const pickLang = L => { setLang(L); lsSet("mpt_lang", L); };
+  const db = dbs[lang] || SAMPLE_DB;
   const activeBots = useMemo(()=>Object.keys(BOT_META).filter(b=>cfg.bots[b]), [cfg]);
   const day = days[i];
+  const bName = b => BOT_META[b].name[lang];
+  const dirLabel = d => d===1? t.dirLong : d===-1? t.dirShort : t.dirPass;
 
   /* ---------- 진행 ---------- */
   function start(){
@@ -611,23 +740,21 @@ function App(){
   function finish(){
     if(name.trim() && nRounds>0){
       Store.push("leaderboard", { name:name.trim().slice(0,20), capital:Math.round(cap),
-        ret:(cap-START_CAPITAL)/START_CAPITAL, rounds:nRounds, ts:Date.now() });
+        ret:(cap-START_CAPITAL)/START_CAPITAL, rounds:nRounds, lang, ts:Date.now() });
     }
     setView("final");
   }
 
-  /* ---------- 관리자 ---------- */
-  function saveCfg(next){
-    setCfg(next); Store.set("config", next);
-    setSavedMsg("저장됨 ✓"); setTimeout(()=>setSavedMsg(""), 1500);
+  function saveCfg(nextCfg){
+    setCfg(nextCfg); Store.set("config", nextCfg);
+    setSavedMsg(t.saved); setTimeout(()=>setSavedMsg(""), 1500);
   }
 
   /* ---------- 공용 부품 ---------- */
   const Headlines = ({items}) => <ol className="headlines">{items.map((h,k)=><li key={k}>{h}</li>)}</ol>;
-  const dirLabel = d => d===1? "매수(Long)" : d===-1? "매도(Short)" : "관망";
 
-  const Leaderboard = ({rows, limit}) => rows.length===0 ? <p className="muted" style={{fontSize:13}}>아직 기록이 없습니다. 첫 번째 트레이더가 되어 보세요.</p> :
-    <table><thead><tr><th style={{width:36}}>#</th><th>이름</th><th className="r">최종 자본</th><th className="r">수익률</th></tr></thead>
+  const Leaderboard = ({rows, limit}) => rows.length===0 ? <p className="muted" style={{fontSize:13}}>{t.lbEmpty}</p> :
+    <table><thead><tr><th style={{width:36}}>#</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.thRet}</th></tr></thead>
       <tbody>{rows.slice(0,limit).map((e,k)=>
         <tr key={k} className={e.name===name.trim()? "me":""}>
           <td className="tnum muted">{k+1}</td><td>{e.name}</td>
@@ -636,179 +763,169 @@ function App(){
         </tr>)}
       </tbody></table>;
 
-  /* ================= 화면 ================= */
+  const LangSwitch = () =>
+    <span style={{display:"inline-flex", gap:2}}>
+      <button className="link" style={{fontWeight:lang==="en"?800:400, color:lang==="en"?"#fff":undefined}} onClick={()=>pickLang("en")}>EN</button>
+      <span style={{color:"#6a655a"}}>|</span>
+      <button className="link" style={{fontWeight:lang==="ko"?800:400, color:lang==="ko"?"#fff":undefined}} onClick={()=>pickLang("ko")}>한국어</button>
+    </span>;
 
   const TopBar = () =>
     <div className="topbar">
       <div>
-        <span className="brand">조간 트레이더</span>
-        <span className="sub" style={{marginLeft:10}}>Morning Paper Trader · {INDEX_NAME} × 효율적 시장가설</span>
+        <span className="brand">{t.brand}</span>
+        <span className="sub" style={{marginLeft:10}}>{t.tagline}</span>
       </div>
       <div style={{display:"flex", alignItems:"center", gap:14}}>
+        <LangSwitch/>
         {(view==="play"||view==="result") &&
-          <span className="tnum" style={{fontSize:13}}>{name} · <b className={cap>=START_CAPITAL?"up":"down"} style={{color:cap>=START_CAPITAL?"#ff8a80":"#9dc1ff"}}>{KRW(cap)}</b></span>}
+          <span className="tnum" style={{fontSize:13}}>{name} · <b style={{color:cap>=START_CAPITAL?"#ff8a80":"#9dc1ff"}}>{KRW(cap)}</b></span>}
         {view.startsWith("admin")
-          ? <button className="link" onClick={()=>setView("lobby")}>학생 화면으로</button>
-          : <button className="link" onClick={()=>setView(adminOk?"admin":"adminLogin")}>관리자</button>}
+          ? <button className="link" onClick={()=>setView("lobby")}>{t.toStudent}</button>
+          : <button className="link" onClick={()=>setView(adminOk?"admin":"adminLogin")}>{t.admin}</button>}
       </div>
     </div>;
 
-  const DemoBanner = () => DEMO &&
-    <div className="notice" style={{maxWidth:1000, margin:"14px auto 0", marginLeft:"auto", marginRight:"auto"}}>
-      <b>데모 모드</b> — firebaseConfig가 아직 설정되지 않았습니다. 리더보드·설정이 이 브라우저에만 저장됩니다.
-      index.html 상단에 Firebase 설정을 붙여넣으면 학급 전체 실시간 공유가 켜집니다.
+  const DemoBanner = () => conn==="demo" &&
+    <div className="notice" style={{maxWidth:1000, margin:"14px auto 0"}}>
+      <b>{t.demoBanner[0]}</b> {t.demoBanner[1]}
     </div>;
 
-  /* ----- 로비 ----- */
+  /* ================= 화면 ================= */
+
   if(view==="lobby") return <div><TopBar/><DemoBanner/>
     <div className="wrap narrow fade">
       <div className="card">
         <h1 className="serif" style={{fontSize:30, fontWeight:900, lineHeight:1.25, letterSpacing:"-1px"}}>
-          오늘 아침 신문만 보고,<br/>{INDEX_NAME}에 베팅할 수 있을까?
+          {t.lobbyTitle1}<br/>{t.lobbyTitle2}
         </h1>
-        <p className="muted" style={{marginTop:12, fontSize:14}}>
-          매 라운드, 실제 과거 어느 거래일의 <b>개장 전 거시경제 헤드라인</b>이 주어집니다 (날짜는 비공개).
-          그날 {INDEX_NAME} 지수가 오를지 내릴지 방향과 베팅 규모를 정하세요. 같은 정보를 본 AI 봇들과 경쟁합니다.
-        </p>
+        <p className="muted" style={{marginTop:12, fontSize:14}}>{t.lobbyIntro}</p>
         <div className="kv">
-          <div className="box"><div className="k">시작 자본</div><div className="v tnum">{KRW(START_CAPITAL)}</div></div>
-          <div className="box"><div className="k">라운드</div><div className="v">{Math.min(cfg.roundsPerSession, db.length)}회 · 날짜 중복 없음</div></div>
-          <div className="box"><div className="k">정보 시장</div><div className="v">{cfg.infoFeature? `내일 조간 ${KRW(cfg.infoPrice)}` : "꺼짐"}</div></div>
-          <div className="box"><div className="k">AI 경쟁자</div><div className="v">{activeBots.length? activeBots.map(b=>BOT_META[b].name).join(" · ") : "없음"}</div></div>
+          <div className="box"><div className="k">{t.kvCapital}</div><div className="v tnum">{KRW(START_CAPITAL)}</div></div>
+          <div className="box"><div className="k">{t.kvRounds}</div><div className="v">{t.kvRoundsVal(Math.min(cfg.roundsPerSession, db.length))}</div></div>
+          <div className="box"><div className="k">{t.kvInfo}</div><div className="v">{cfg.infoFeature? t.kvInfoOn(KRW(cfg.infoPrice)) : t.kvInfoOff}</div></div>
+          <div className="box"><div className="k">{t.kvBots}</div><div className="v">{activeBots.length? activeBots.map(bName).join(" · ") : t.kvBotsNone}</div></div>
         </div>
         <div style={{display:"flex", gap:8}}>
-          <input type="text" placeholder="이름 또는 닉네임" value={name} maxLength={20}
+          <input type="text" placeholder={t.namePh} value={name} maxLength={20}
             onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&start()} />
-          <button className="btn" style={{width:"auto", padding:"12px 26px"}} disabled={!name.trim()} onClick={start}>거래 시작</button>
+          <button className="btn" style={{width:"auto", padding:"12px 26px"}} disabled={!name.trim() || conn==="checking"} onClick={start}>
+            {conn==="checking"? t.connecting : t.start}
+          </button>
         </div>
         <details style={{marginTop:16, fontSize:13.5}}>
-          <summary style={{cursor:"pointer", fontWeight:700}}>게임 방법 (30초 설명)</summary>
+          <summary style={{cursor:"pointer", fontWeight:700}}>{t.howto}</summary>
           <ol style={{margin:"10px 0 0 18px", color:"var(--muted)"}}>
-            <li>조간 헤드라인을 읽고 <b className="up">매수 ▲</b> 또는 <b className="down">매도 ▼</b>를 고른다.</li>
-            <li>자본의 몇 %를 걸지 정한다. 확신이 없으면 적게, 아예 관망도 전략.</li>
-            {cfg.infoFeature && <li>{KRW(cfg.infoPrice)}을 내면 <b>내일 조간</b>을 미리 볼 수 있다. 낼 가치가 있는지는 스스로 판단.</li>}
-            <li>실제 그날의 {INDEX_NAME} 수익률로 손익이 정산된다. 봇들의 판단 근거도 함께 공개.</li>
+            <li>{t.howto1([t.long, t.short])}</li>
+            <li>{t.howto2}</li>
+            {cfg.infoFeature && <li>{t.howto3(KRW(cfg.infoPrice))}</li>}
+            <li>{t.howto4}</li>
           </ol>
         </details>
-        <h3 className="mini">Leaderboard</h3>
+        <h3 className="mini">{t.lb}</h3>
         <Leaderboard rows={lb} limit={5} />
-        <p className="footer-note">실제 과거 {INDEX_NAME} 데이터 기반 교육용 시뮬레이션입니다. 투자 자문이 아닙니다.</p>
+        <p className="footer-note">{t.disclaimer}</p>
       </div>
     </div></div>;
 
-  /* ----- 관리자 로그인 ----- */
   if(view==="adminLogin") return <div><TopBar/>
     <div className="modal-bg" onClick={()=>setView("lobby")}>
       <div className="modal" onClick={e=>e.stopPropagation()}>
-        <h3 className="serif" style={{fontWeight:900, fontSize:20, marginBottom:12}}>관리자 로그인</h3>
-        <input type="password" placeholder="비밀번호" autoFocus
-          onKeyDown={e=>{ if(e.key==="Enter"){ if(e.target.value===ADMIN_PASSCODE){ setAdminOk(true); setView("admin"); } else alert("비밀번호가 올바르지 않습니다."); } }} />
-        <p className="footer-note">비밀번호는 index.html 상단 ADMIN_PASSCODE에서 변경합니다.</p>
-        <button className="textbtn" style={{marginTop:8}} onClick={()=>setView("lobby")}>← 돌아가기</button>
+        <h3 className="serif" style={{fontWeight:900, fontSize:20, marginBottom:12}}>{t.loginTitle}</h3>
+        <input type="password" placeholder={t.pw} autoFocus
+          onKeyDown={e=>{ if(e.key==="Enter"){ if(e.target.value===ADMIN_PASSCODE){ setAdminOk(true); setView("admin"); } else alert(t.pwWrong); } }} />
+        <p className="footer-note">{t.pwHint}</p>
+        <button className="textbtn" style={{marginTop:8}} onClick={()=>setView("lobby")}>{t.back}</button>
       </div>
     </div></div>;
 
-  /* ----- 관리자 콘솔 ----- */
   if(view==="admin"){
-    const Row = ({t,d,children}) => <div className="row"><div><div className="t">{t}</div>{d&&<div className="d">{d}</div>}</div>{children}</div>;
+    const Row = ({tt,d,children}) => <div className="row"><div><div className="t">{tt}</div>{d&&<div className="d">{d}</div>}</div>{children}</div>;
     const Switch = ({on,set}) => <label className="switch"><input type="checkbox" checked={on} onChange={e=>set(e.target.checked)} /><span className="track"></span></label>;
     return <div><TopBar/><DemoBanner/>
       <div className="wrap fade" style={{maxWidth:760}}>
         <div className="admin-h">
-          <h1>편집국 <span className="muted" style={{fontSize:14, fontWeight:400}}>관리자 콘솔</span></h1>
-          <span className="saveflash">{savedMsg || (DEMO? "데모 모드" : "실시간 공유 중")}</span>
+          <h1>{lang==="ko"?"편집국":"Newsroom"} <span className="muted" style={{fontSize:14, fontWeight:400}}>{t.admin}</span></h1>
+          <span className="saveflash">{savedMsg || (conn==="demo"? t.demoTag : t.online)}</span>
         </div>
-        <p className="muted" style={{fontSize:13, marginBottom:16}}>설정은 저장 즉시 모든 학생에게 반영되며, 진행 중인 게임에는 영향을 주지 않고 <b>다음 게임 시작부터</b> 적용됩니다.</p>
+        <p className="muted" style={{fontSize:13, marginBottom:16}}>{t.adminNote}</p>
 
         <div className="card tight" style={{marginBottom:16}}>
-          <p className="section-t">① AI 경쟁자</p>
+          <p className="section-t">{t.s1}</p>
           {Object.keys(BOT_META).map(b=>
-            <Row key={b} t={<span><span className={"badge "+BOT_META[b].cls}>{BOT_META[b].name}</span></span>} d={BOT_META[b].desc}>
+            <Row key={b} tt={<span className={"badge "+BOT_META[b].cls}>{bName(b)}</span>} d={BOT_META[b].desc[lang]}>
               <Switch on={cfg.bots[b]} set={v=>saveCfg({...cfg, bots:{...cfg.bots,[b]:v}})} />
             </Row>)}
         </div>
 
         <div className="card tight" style={{marginBottom:16}}>
-          <p className="section-t">② 정보 시장 <span style={{textTransform:"none", letterSpacing:0}}>(Grossman-Stiglitz)</span></p>
-          <Row t="내일 조간 구매 기능" d="학생이 돈을 내고 다음 날 아침 헤드라인을 미리 볼 수 있게 합니다.">
+          <p className="section-t">{t.s2} <span style={{textTransform:"none", letterSpacing:0}}>{t.s2b}</span></p>
+          <Row tt={t.rInfo} d={t.rInfoD}>
             <Switch on={cfg.infoFeature} set={v=>saveCfg({...cfg, infoFeature:v})} />
           </Row>
           {cfg.infoFeature && <div className="subrows">
-            <Row t="정보 가격" d="기본 ₩10,000 — 완전한 정보라도 기대이익과 비슷한 수준의 가격입니다.">
+            <Row tt={t.rPrice} d={t.rPriceD}>
               <input type="number" step="1000" min="0" style={{width:120, textAlign:"right"}} value={cfg.infoPrice}
                 onChange={e=>saveCfg({...cfg, infoPrice:Math.max(0, +e.target.value||0)})} />
             </Row>
-            <Row t="공개 모드" d="켜면 시황 기사가 포함되어 사실상 정답이 노출됩니다 (내부정보 실험). 기본은 노이즈 모드.">
+            <Row tt={t.rReveal} d={t.rRevealD}>
               <Switch on={cfg.revealMode} set={v=>saveCfg({...cfg, revealMode:v})} />
             </Row>
-            <Row t="봇의 정보 구매 허용" d="고급 봇은 비용-편익을 따져 살지 말지 스스로 판단합니다.">
+            <Row tt={t.rBotsBuy} d={t.rBotsBuyD}>
               <Switch on={cfg.botsCanBuy} set={v=>saveCfg({...cfg, botsCanBuy:v})} />
             </Row>
           </div>}
         </div>
 
         <div className="card tight" style={{marginBottom:16}}>
-          <p className="section-t">③ 게임 규칙</p>
-          <Row t="세션당 라운드 수" d={`현재 데이터 ${db.length}일 중에서 중복 없이 추출됩니다.`}>
+          <p className="section-t">{t.s3}</p>
+          <Row tt={t.rRounds} d={t.rRoundsD(db.length)}>
             <input type="number" min="1" max="50" style={{width:90, textAlign:"right"}} value={cfg.roundsPerSession}
               onChange={e=>saveCfg({...cfg, roundsPerSession:Math.max(1, Math.min(50, +e.target.value||1))})} />
           </Row>
         </div>
 
         <div className="card tight" style={{marginBottom:16}}>
-          <p className="section-t">④ 데이터베이스</p>
-          <Row t={"현재 데이터: " + (remoteDb? `업로드본 ${remoteDb.length}일` : `내장 샘플 ${SAMPLE_DB.length}일`)}
-               d="수집 스크립트(collect_from_gdelt.py) → generate_bots.py로 만든 game_database.json을 업로드하세요 (100일 이상 권장). 업로드 즉시 모든 학생에게 적용됩니다.">
-          </Row>
-          <div style={{display:"flex", gap:12, alignItems:"center", paddingTop:10}}>
-            <input type="file" accept=".json" onChange={e=>{
-              const f=e.target.files && e.target.files[0]; if(!f) return;
-              const rd=new FileReader();
-              rd.onload=()=>{ try{
-                  const data=JSON.parse(rd.result);
-                  if(!validDb(data)) throw 0;
-                  Store.set("database", data).then(()=>alert(`업로드 완료: ${data.length}일`));
-                }catch(err){ alert("game_database.json 형식이 아닙니다."); } };
-              rd.readAsText(f);
-            }} />
-            {remoteDb && <button className="textbtn danger" onClick={()=>{ if(confirm("업로드된 데이터를 삭제하고 샘플로 되돌릴까요?")) Store.remove("database"); }}>샘플로 되돌리기</button>}
+          <p className="section-t">{t.s4}</p>
+          <Row tt={<span>EN — {dbs.en? t.dataLoaded(dbs.en.length) : t.dataMissing}</span>} d={DB_FILES.en}></Row>
+          <Row tt={<span>KO — {dbs.ko? t.dataLoaded(dbs.ko.length) : t.dataMissing}</span>} d={DB_FILES.ko}></Row>
+          <div style={{paddingTop:10, display:"flex", gap:14, alignItems:"center"}}>
+            <button className="btn sm ghost" onClick={loadFiles}>{t.reload}</button>
+            <span className="muted" style={{fontSize:12}}>{t.dataD}</span>
           </div>
         </div>
 
         <div className="card tight">
-          <p className="section-t">⑤ 리더보드 <span style={{textTransform:"none", letterSpacing:0}}>({lb.length}명)</span></p>
+          <p className="section-t">{t.s5} <span style={{textTransform:"none", letterSpacing:0}}>({lb.length})</span></p>
           <div style={{maxHeight:300, overflowY:"auto", marginTop:6}}><Leaderboard rows={lb} limit={100} /></div>
           <div style={{marginTop:12}}>
-            <button className="textbtn danger" onClick={()=>{ if(confirm("리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.")) Store.remove("leaderboard"); }}>리더보드 초기화</button>
+            <button className="textbtn danger" onClick={()=>{ if(confirm(t.lbResetC)) Store.remove("leaderboard"); }}>{t.lbReset}</button>
           </div>
         </div>
       </div></div>;
   }
 
-  /* ----- 라운드 ----- */
   if(view==="play" && day) return <div><TopBar/>
     <div className="wrap fade">
       <div className="grid play">
         <div className="card">
           <div className="masthead">
-            <div className="edition"><span>Global Macro Wire · Reuters/CNBC/AP</span><span>날짜 비공개</span></div>
-            <h2>오늘의 조간</h2>
-            <div style={{fontSize:11.5, color:"var(--muted)"}}>개장 전(09:00 이전) 배포된 거시경제 헤드라인</div>
+            <div className="edition"><span>{t.edition}</span><span>{t.dateHidden}</span></div>
+            <h2>{t.masthead}</h2>
+            <div style={{fontSize:11.5, color:"var(--muted)"}}>{t.mastheadSub}</div>
           </div>
           <Headlines items={day.headlines} />
           {sc.infoFeature && <div>
-            <div className="cutline"><span>INFORMATION MARKET</span></div>
+            <div className="cutline"><span>{t.infoCut}</span></div>
             {!bought
               ? <div>
-                  <button className="btn ghost" disabled={cap < sc.infoPrice} onClick={buyInfo}>
-                    📰 내일 조간 미리보기 구매 — {KRW(sc.infoPrice)}
-                  </button>
-                  <p className="footer-note">비용은 베팅 여부와 무관하게 즉시 차감되며 환불되지 않습니다. 낼 가치가 있을까요?</p>
+                  <button className="btn ghost" disabled={cap < sc.infoPrice} onClick={buyInfo}>{t.buyInfo(KRW(sc.infoPrice))}</button>
+                  <p className="footer-note">{t.feeNote}</p>
                 </div>
               : <div className="tomorrow">
                   <div className="thead">
-                    <span>내일의 조간 <span className="muted" style={{fontWeight:400, fontSize:11}}>({sc.revealMode? "전체판":"시황기사 제외판"})</span></span>
-                    <span className="up" style={{fontSize:12, fontWeight:800}}>−{KRW(sc.infoPrice)} 결제됨</span>
+                    <span>{t.tomorrow} <span className="muted" style={{fontWeight:400, fontSize:11}}>{sc.revealMode? t.revealTag : t.noisyTag}</span></span>
+                    <span className="up" style={{fontSize:12, fontWeight:800}}>{t.paid(KRW(sc.infoPrice))}</span>
                   </div>
                   <Headlines items={sc.revealMode? day.next_day_reveal : day.next_day_noisy} />
                 </div>}
@@ -818,100 +935,99 @@ function App(){
         <div style={{display:"grid", gap:14}}>
           <div className="card">
             <div style={{display:"flex", justifyContent:"space-between", marginBottom:14}}>
-              <span className="progress">Round {i+1} / {days.length}</span>
-              <span className="progress tnum">가용자본 {KRW(cap)}</span>
+              <span className="progress">{t.round} {i+1} / {days.length}</span>
+              <span className="progress tnum">{t.capitalAvail} {KRW(cap)}</span>
             </div>
-            <p className="step"><b>STEP 1</b> · 방향</p>
+            <p className="step"><b>{t.step1}</b></p>
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16}}>
-              <button className={"btn long"+(dir===1?" on":"")} onClick={()=>setDir(1)}>매수 ▲</button>
-              <button className={"btn short"+(dir===-1?" on":"")} onClick={()=>setDir(-1)}>매도 ▼</button>
+              <button className={"btn long"+(dir===1?" on":"")} onClick={()=>setDir(1)}>{t.long}</button>
+              <button className={"btn short"+(dir===-1?" on":"")} onClick={()=>setDir(-1)}>{t.short}</button>
             </div>
-            <p className="step"><b>STEP 2</b> · 베팅 규모 — <span className="tnum" style={{color:"var(--ink)"}}>{size}% = {KRW(cap*size/100)}</span></p>
+            <p className="step"><b>{t.step2}</b> — <span className="tnum" style={{color:"var(--ink)"}}>{size}% = {KRW(cap*size/100)}</span></p>
             <input type="range" min="0" max="100" step="5" value={size} onChange={e=>setSize(+e.target.value)} />
             <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)", marginBottom:16}}>
               <span>0%</span><span>50%</span><span>100%</span>
             </div>
-            <p className="step"><b>STEP 3</b> · 주문</p>
-            <button className="btn" disabled={!dir || size===0} onClick={()=>settle(dir,size)}>주문 체결</button>
+            <p className="step"><b>{t.step3}</b></p>
+            <button className="btn" disabled={!dir || size===0} onClick={()=>settle(dir,size)}>{t.submit}</button>
             <div style={{textAlign:"center", marginTop:10}}>
-              <button className="textbtn" onClick={()=>settle(0,0)}>이번 라운드 관망 (베팅 안 함)</button>
+              <button className="textbtn" onClick={()=>settle(0,0)}>{t.pass}</button>
             </div>
           </div>
           {Object.keys(botCaps).length>0 && <div className="card tight" style={{fontSize:12.5, color:"var(--muted)"}}>
-            <b style={{color:"var(--ink)"}}>AI 경쟁자</b> — 같은 헤드라인으로 이미 주문했습니다. 결과에서 근거가 공개됩니다.
+            <b style={{color:"var(--ink)"}}>{t.aiBox}</b> — {t.aiBoxD}
             <div style={{marginTop:8}}>
-              {Object.keys(botCaps).map(b=><span key={b} className="pill"><span className={"badge "+BOT_META[b].cls} style={{marginRight:6}}>{BOT_META[b].name}</span><span className="tnum">{KRW(botCaps[b])}</span></span>)}
+              {Object.keys(botCaps).map(b=><span key={b} className="pill"><span className={"badge "+BOT_META[b].cls} style={{marginRight:6}}>{bName(b)}</span><span className="tnum">{KRW(botCaps[b])}</span></span>)}
             </div>
+            {t.aiLangNote && <div style={{marginTop:6, fontSize:11}}>{t.aiLangNote}</div>}
           </div>}
         </div>
       </div>
     </div></div>;
 
-  /* ----- 결과 ----- */
   if(view==="result" && res && day){
     const hit = res.pDir!==0 && res.pDir*res.r>0;
     return <div><TopBar/>
       <div className="wrap fade">
         <div className="card hero">
-          <div className="label">당일 {INDEX_NAME} 수익률</div>
+          <div className="label">{t.resultLabel}</div>
           <div className={"big "+cls(res.r)}>{pctf(res.r)}</div>
           {res.pDir!==0
-            ? <div className={"verdict "+(hit? "hit"+(res.pDir===-1?" short":"") : "miss")}>{hit? "방향 적중":"방향 빗나감"}</div>
-            : <div className="verdict miss">관망</div>}
+            ? <div className={"verdict "+(hit? "hit"+(res.pDir===-1?" short":"") : "miss")}>{hit? t.hit : t.miss}</div>
+            : <div className="verdict miss">{t.sat}</div>}
           <div style={{marginTop:14, fontSize:14}}>
-            나의 선택: <b>{dirLabel(res.pDir)}</b>{res.pDir!==0 && <> · {res.pSize}% ({KRW(res.bet)})</>}{res.fee>0 && <> · 정보비용 {KRW(res.fee)}</>}
+            {t.myChoice}: <b>{dirLabel(res.pDir)}</b>{res.pDir!==0 && <> · {res.pSize}% ({KRW(res.bet)})</>}{res.fee>0 && <> · {t.infoFee} {KRW(res.fee)}</>}
           </div>
           <div className={"tnum "+cls(res.pnl - 0.000001)} style={{fontSize:26, fontWeight:900, marginTop:2}}>{signKRW(res.pnl)}</div>
-          <div className="muted tnum" style={{fontSize:13}}>잔고 {KRW(cap)}</div>
+          <div className="muted tnum" style={{fontSize:13}}>{t.balance} {KRW(cap)}</div>
         </div>
 
         {Object.keys(res.bres).length>0 && <div className="grid bots" style={{marginTop:16}}>
           {Object.keys(res.bres).map(b=>{ const x=res.bres[b]; return (
             <div key={b} className="card tight">
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
-                <span className={"badge "+BOT_META[b].cls}>{BOT_META[b].name}</span>
+                <span className={"badge "+BOT_META[b].cls}>{bName(b)}</span>
                 <b className={"tnum "+cls(x.pnl-0.000001)}>{signKRW(x.pnl)}</b>
               </div>
-              <div style={{fontWeight:800, fontSize:14}}>{dirLabel(x.dir)}{x.dir!==0 && ` · ${x.size}%`}{x.buys && <span style={{marginLeft:6, fontWeight:600, fontSize:11.5, color:"#5b3aa6"}}>📰 정보구매</span>}</div>
+              <div style={{fontWeight:800, fontSize:14}}>{dirLabel(x.dir)}{x.dir!==0 && ` · ${x.size}%`}{x.buys && <span style={{marginLeft:6, fontWeight:600, fontSize:11.5, color:"#5b3aa6"}}>{t.infoBadge}</span>}</div>
               <p className="muted" style={{fontSize:12.5, marginTop:6}}>“{x.rationale}”</p>
-              <div className="muted tnum" style={{fontSize:11.5, marginTop:8}}>잔고 {KRW(x.cap)}</div>
+              <div className="muted tnum" style={{fontSize:11.5, marginTop:8}}>{t.balance} {KRW(x.cap)}</div>
             </div>);})}
         </div>}
 
         <button className="btn" style={{marginTop:18}} onClick={next}>
-          {(i+1>=days.length || cap<=0)? "최종 결과 보기" : "다음 거래일 →"}
+          {(i+1>=days.length || cap<=0)? t.finalBtn : t.next}
         </button>
       </div></div>;
   }
 
-  /* ----- 최종 ----- */
   if(view==="final"){
-    const rows = [{name:name.trim()+" (나)", cap}, ...Object.keys(botCaps).map(b=>({name:BOT_META[b].name, cap:botCaps[b]}))]
+    const rows = [{name:name.trim()+" "+t.me, cap}, ...Object.keys(botCaps).map(b=>({name:bName(b), cap:botCaps[b]}))]
       .sort((a,b)=>b.cap-a.cap);
     return <div><TopBar/>
       <div className="wrap narrow fade">
         <div className="card">
-          <h2 className="serif" style={{fontSize:24, fontWeight:900, marginBottom:4}}>세션 종료</h2>
-          <p className="muted" style={{fontSize:13, marginBottom:14}}>{cap<=0? "자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다." : `${nRounds}라운드 완료.`}</p>
+          <h2 className="serif" style={{fontSize:24, fontWeight:900, marginBottom:4}}>{t.finalTitle}</h2>
+          <p className="muted" style={{fontSize:13, marginBottom:14}}>{cap<=0? t.busted : t.completed(nRounds)}</p>
           <table>
-            <thead><tr><th>순위</th><th>참가자</th><th className="r">최종 자본</th><th className="r">수익률</th></tr></thead>
+            <thead><tr><th>{t.thRank}</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.thRet}</th></tr></thead>
             <tbody>{rows.map((e,k)=>
-              <tr key={k} className={e.name.endsWith("(나)")? "me":""}>
+              <tr key={k} className={e.name.endsWith(t.me)? "me":""}>
                 <td className="tnum">{k+1}</td><td>{e.name}</td>
                 <td className="r tnum"><b>{KRW(e.cap)}</b></td>
                 <td className={"r tnum "+cls(e.cap-START_CAPITAL)}>{pctf((e.cap-START_CAPITAL)/START_CAPITAL)}</td>
               </tr>)}
             </tbody>
           </table>
-          <p className="footer-note">{DEMO? "데모 모드: 기록이 이 브라우저에만 저장되었습니다." : "기록이 학급 리더보드에 등록되었습니다."}</p>
-          <h3 className="mini">전체 리더보드</h3>
+          <p className="footer-note">{conn==="demo"? t.lbNoteDemo : t.lbNoteOn}</p>
+          <h3 className="mini">{t.fullLb}</h3>
           <Leaderboard rows={lb} limit={15} />
-          <button className="btn" style={{marginTop:18}} onClick={()=>setView("lobby")}>다시 도전</button>
+          <button className="btn" style={{marginTop:18}} onClick={()=>setView("lobby")}>{t.again}</button>
         </div>
       </div></div>;
   }
 
-  return <div><TopBar/><div className="wrap"><p className="muted">불러오는 중…</p></div></div>;
+  return <div><TopBar/><div className="wrap"><p className="muted">{t.connecting}</p></div></div>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
