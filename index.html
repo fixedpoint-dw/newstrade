@@ -538,6 +538,9 @@ en: {
   pwHint:"Change ADMIN_PASSCODE at the top of index.html.",
   online:"Live sync on", demoTag:"Demo mode", saved:"Saved ✓",
   adminNote:"Settings save for everyone instantly. Game-rule changes apply from the next game.",
+  tabControl:"Control panel", tabSession:"Game session",
+  endGameC:"End the whole game now and save scores?",
+  sesBets:"Bets", thPnl:"P&L", sesNoGame:"No game in progress — players are in the waiting room.",
   s0:"⓪ Live class game", s1:"① AI benchmarks", s2:"② Information market", s2b:"(Grossman-Stiglitz)",
   s3:"③ Game rules", s4:"④ Data files", s5:"⑤ All-time leaderboard",
   phaseName:{lobby:"Waiting room",betting:"Betting",reveal:"Results",finished:"Finished"},
@@ -615,6 +618,9 @@ ko: {
   pwHint:"비밀번호는 index.html 상단 ADMIN_PASSCODE에서 변경합니다.",
   online:"실시간 공유 중", demoTag:"데모 모드", saved:"저장됨 ✓",
   adminNote:"설정은 저장 즉시 모두에게 반영됩니다. 게임 규칙 변경은 다음 게임부터 적용됩니다.",
+  tabControl:"컨트롤 패널", tabSession:"게임 세션",
+  endGameC:"게임 전체를 지금 종료하고 기록을 저장할까요?",
+  sesBets:"베팅 현황", thPnl:"손익", sesNoGame:"진행 중인 게임이 없습니다 — 플레이어들이 대기실에 있습니다.",
   s0:"⓪ 실시간 수업 게임", s1:"① AI 벤치마크", s2:"② 정보 시장", s2b:"(Grossman-Stiglitz)",
   s3:"③ 게임 규칙", s4:"④ 데이터 파일", s5:"⑤ 명예의 전당",
   phaseName:{lobby:"대기실",betting:"베팅 중",reveal:"결과 공개",finished:"종료"},
@@ -672,7 +678,7 @@ ko: {
 const DEFAULT_CONFIG = {
   bots:{ novice:true, intermediate:true, advanced:true },
   infoFeature:true, infoPrice:10000, revealMode:false, botsCanBuy:true,
-  roundsPerSession:10, turnSeconds:60, revealSeconds:5, showGap:true, soloEnabled:false
+  roundsPerSession:10, turnSeconds:60, revealSeconds:30, showGap:true, soloEnabled:false
 };
 
 const START_CAPITAL = 1000000;
@@ -732,6 +738,7 @@ function App(){
   const [res, setRes] = useState(null);
   const [nRounds, setNRounds] = useState(0);
   const [savedMsg, setSavedMsg] = useState("");
+  const [adminTab, setAdminTab] = useState("control");
 
   const loadFiles = () => { ["en","ko"].forEach(async L => {
     const d = await fetchDb(L); setDbs(prev => ({...prev, [L]: d}));
@@ -742,7 +749,11 @@ function App(){
       setConn(db ? "online" : "demo");
       if (db) db.ref(".info/serverTimeOffset").on("value", s => setOffset(s.val()||0));
     });
-    Store.on("config", v => { if(v) setCfg({...DEFAULT_CONFIG, ...v, bots:{...DEFAULT_CONFIG.bots, ...(v.bots||{})}}); });
+    Store.on("config", v => { if(v){
+      const m = {...DEFAULT_CONFIG, ...v, bots:{...DEFAULT_CONFIG.bots, ...(v.bots||{})}};
+      if(!(m.revealSeconds >= 10)) m.revealSeconds = 30;   // migrate old 5s configs
+      setCfg(m);
+    }});
     Store.on("leaderboard", v => {
       const arr = v ? Object.values(v) : [];
       arr.sort((a,b)=>b.capital-a.capital);
@@ -865,7 +876,7 @@ function App(){
       });
       Store.set(`room/results/${RS.round}`, { r, dateId:RS.dateIds[RS.round], players, bots });
       Store.set("room/state", { ...RS, phase:"reveal", botCaps:nb, turnEndsAt:null,
-        revealEndsAt: now() + (cfg.revealSeconds||5)*1000 });
+        revealEndsAt: now() + (cfg.revealSeconds||30)*1000 });
     } finally { setTimeout(()=>{ settlingRef.current=false; }, 1500); }
   }
 
@@ -878,12 +889,13 @@ function App(){
   }
 
   function hostEnd(){
-    if(!RS || RS.saved) { Store.set("room/state", {...RS, phase:"finished"}); return; }
+    if(!RS) return;
+    if(RS.saved) { Store.set("room/state", {...RS, phase:"finished", turnEndsAt:null, revealEndsAt:null}); return; }
     Object.values(RP).forEach(p=>{
       if(p.playing) Store.push("leaderboard", { name:p.name, capital:Math.round(p.capital),
         ret:(p.capital-START_CAPITAL)/START_CAPITAL, rounds:(RS.round||0)+1, ts:Date.now() });
     });
-    Store.set("room/state", { ...RS, phase:"finished", saved:true, turnEndsAt:null });
+    Store.set("room/state", { ...RS, phase:"finished", saved:true, turnEndsAt:null, revealEndsAt:null });
   }
 
   function hostReset(){
@@ -1015,12 +1027,13 @@ function App(){
     return rows;
   };
   const Standings = ({limit}) =>
-    <table><thead><tr><th style={{width:34}}>#</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th></tr></thead>
+    <table><thead><tr><th style={{width:34}}>#</th><th>{t.thPlayer}</th><th className="r">{t.thCap}</th><th className="r">{t.thRet}</th></tr></thead>
       <tbody>{standingsRows().slice(0,limit||99).map((e,k)=>
         <tr key={e.key} className={e.me? "me":""}>
           <td className="tnum muted">{k+1}</td>
           <td>{e.bot? <span className={"badge "+BOT_META[e.key].cls}>{e.name}</span> : e.name}</td>
           <td className={"r tnum "+(e.cap>=START_CAPITAL?"up":"down")}><b>{KRW(e.cap)}</b></td>
+          <td className={"r tnum "+cls(e.cap-START_CAPITAL)}>{pctf((e.cap-START_CAPITAL)/START_CAPITAL)}</td>
         </tr>)}
       </tbody></table>;
 
@@ -1114,6 +1127,81 @@ function App(){
     const phase = RS? (RS.phase||"lobby") : "lobby";
     const playing = Object.values(RP).filter(p=>p.playing).length;
     const bets = RS? (RB[RS.round]||{}) : {};
+    const SessionView = () => {
+      const dS = RS && RS.dateIds ? dayById(RS.dateIds[Math.min(RS.round||0, RS.dateIds.length-1)]) : null;
+      const result = RS ? RR[RS.round] : null;
+      const remain = RS && RS.phase==="betting" && RS.turnEndsAt ? RS.turnEndsAt - now() : 0;
+      return <div>
+        <div className="card tight" style={{marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8}}>
+          <div>
+            <b>{t.phaseName[phase]}</b>
+            {RS && phase!=="lobby" && <span className="muted"> · {t.stRound((RS.round||0)+1, RS.total||0)}</span>}
+            {phase==="betting" && RS.turnEndsAt && <b className="tnum" style={{marginLeft:10, color: remain<10000?"var(--up)":"inherit"}}>⏱ {mmss(remain)}</b>}
+            {phase==="reveal" && RS.revealEndsAt && (RS.round+1)<RS.total && RS.revealEndsAt>now() &&
+              <span className="muted" style={{marginLeft:10}}>{t.nextIn(Math.max(0,Math.ceil((RS.revealEndsAt-now())/1000)))}</span>}
+          </div>
+          <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+            {phase==="lobby" && <button className="btn sm" disabled={conn!=="online"} onClick={hostStart}>{t.startGame}</button>}
+            {phase==="betting" && <button className="btn sm" onClick={hostSettle}>{t.endTurn}</button>}
+            {phase==="reveal" && (RS.round+1)<RS.total && <button className="btn sm" onClick={hostNext}>{t.nextRound}</button>}
+            {phase==="reveal" && (RS.round+1)>=RS.total && <button className="btn sm" onClick={hostEnd}>{t.endGame}</button>}
+            {(phase==="betting" || (phase==="reveal" && (RS.round+1)<RS.total)) &&
+              <button className="btn sm ghost" onClick={()=>{ if(confirm(t.endGameC)) hostEnd(); }}>{t.endGame}</button>}
+          </div>
+        </div>
+        {phase==="lobby" && <div className="card">
+          <p className="muted" style={{fontSize:13.5}}>{t.sesNoGame}</p>
+          <div style={{display:"flex", flexWrap:"wrap", gap:6, marginTop:10}}>
+            {Object.entries(RP).map(([id2,p])=><span key={id2} className="pill">{p.name}</span>)}
+          </div>
+        </div>}
+        {(phase==="betting" || phase==="reveal") && dS && <div className="grid play" style={{alignItems:"start"}}>
+          <div className="card">
+            <div className="masthead">
+              <div className="edition"><span>{t.edition}</span><span>{t.dateHidden}</span></div>
+              <h2>{t.masthead}</h2>
+            </div>
+            {phase==="reveal" && result && <div style={{textAlign:"center", margin:"6px 0 10px"}}>
+              <div style={{fontSize:10.5, letterSpacing:"1px", textTransform:"uppercase", color:"var(--muted)"}}>{t.resultLabel}</div>
+              <div className={"tnum "+cls(result.r)} style={{fontSize:30, fontWeight:900}}>{pctf(result.r)}</div>
+            </div>}
+            <MarketStrip m={dS.market}/>
+            <Headlines items={dS.headlines}/>
+          </div>
+          <div style={{display:"grid", gap:14}}>
+            <div className="card tight">
+              <h3 className="mini" style={{margin:"0 0 8px"}}>{t.sesBets}</h3>
+              <table><thead><tr><th>{t.thPlayer}</th><th className="r">{t.colBet}</th><th className="r">{phase==="reveal"? t.thPnl : t.thCap}</th></tr></thead>
+                <tbody>{Object.entries(RP).filter(([,p])=>p.playing).sort((a,b)=>b[1].capital-a[1].capital).map(([id2,p])=>{
+                  const b = bets[id2]; const pr = result && result.players && result.players[id2];
+                  const betTxt = b ? ((b.dir===1?"▲":b.dir===-1?"▼":"·")+" "+(b.size||0)+"%"+(b.bought?" 📰":"")) : t.noBet;
+                  return <tr key={id2}><td>{p.busted&&"💀 "}{p.name}</td>
+                    <td className="r tnum">{betTxt}</td>
+                    <td className={"r tnum "+((phase==="reveal"&&pr)? cls(pr.pnl-0.000001):"")}>
+                      {phase==="reveal" ? (pr? signKRW(pr.pnl) : "—") : KRW(p.capital)}</td></tr>;})}
+                </tbody></table>
+            </div>
+            <div className="card tight">
+              <h3 className="mini" style={{margin:"0 0 8px"}}>{t.standings}</h3>
+              <Standings/>
+            </div>
+          </div>
+        </div>}
+        {phase==="reveal" && result && <div className="grid bots" style={{marginTop:14}}>
+          {Object.entries(result.bots||{}).map(([b,x])=>
+            <div key={b} className="card tight">
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
+                <span className={"badge "+BOT_META[b].cls}>{bName(b)}</span>
+                <b className={"tnum "+cls(x.pnl-0.000001)}>{signKRW(x.pnl)}</b>
+              </div>
+              <div style={{fontWeight:800, fontSize:13.5}}>{dirLabel(x.dir)}{x.dir!==0 && ` · ${x.size}%`}{x.buys && " 📰"}</div>
+              <p className="muted" style={{fontSize:12, marginTop:4}}>“{x.rationale}”</p>
+            </div>)}
+        </div>}
+        {phase==="finished" && <div className="card">
+          <h3 className="mini" style={{margin:"0 0 8px"}}>{t.standings}</h3><Standings/>
+        </div>}
+      </div>; };
     return <div><TopBar/><DemoBanner/><SampleWarn/>
       <div className="wrap fade" style={{maxWidth:760}}>
         <div className="admin-h">
@@ -1122,6 +1210,12 @@ function App(){
         </div>
         <p className="muted" style={{fontSize:13, marginBottom:16}}>{t.adminNote}</p>
 
+        <div style={{display:"flex", gap:8, marginBottom:16}}>
+          <button className={"btn sm"+(adminTab==="control"?"":" ghost")} onClick={()=>setAdminTab("control")}>{t.tabControl}</button>
+          <button className={"btn sm"+(adminTab==="session"?"":" ghost")} onClick={()=>setAdminTab("session")}>{t.tabSession}</button>
+        </div>
+        {adminTab==="session" && <SessionView/>}
+        {adminTab==="control" && <React.Fragment>
         <div className="card tight" style={{marginBottom:16, borderWidth:2, borderColor:"var(--ink)"}}>
           <p className="section-t">{t.s0}</p>
           <div className="row" style={{borderBottom:"none", paddingBottom:4}}>
@@ -1136,6 +1230,8 @@ function App(){
               {phase==="reveal"   && ((RS.round+1) < RS.total
                     ? <button className="btn sm" onClick={hostNext}>{t.nextRound}</button>
                     : <button className="btn sm" onClick={hostEnd}>{t.endGame}</button>)}
+              {(phase==="betting" || (phase==="reveal" && (RS.round+1)<RS.total)) &&
+                <button className="btn sm ghost" onClick={()=>{ if(confirm(t.endGameC)) hostEnd(); }}>{t.endGame}</button>}
               {phase!=="lobby"    && <button className="textbtn danger" onClick={()=>{ if(confirm(t.resetRoomC)) hostReset(); }}>{t.resetRoom}</button>}
             </div>
           </div>
@@ -1145,8 +1241,8 @@ function App(){
               onChange={e=>saveCfg({...cfg, turnSeconds:+e.target.value})} />
           </div>
           <div className="row">
-            <div><div className="t">{t.revealSec}: <b className="tnum">{cfg.revealSeconds||5}s</b></div></div>
-            <input type="range" min="3" max="30" step="1" value={cfg.revealSeconds||5} style={{width:180}}
+            <div><div className="t">{t.revealSec}: <b className="tnum">{cfg.revealSeconds||30}s</b></div></div>
+            <input type="range" min="10" max="60" step="5" value={cfg.revealSeconds||30} style={{width:180}}
               onChange={e=>saveCfg({...cfg, revealSeconds:+e.target.value})} />
           </div>
           {Object.keys(RP).length===0
@@ -1222,6 +1318,7 @@ function App(){
             <button className="textbtn danger" onClick={()=>{ if(confirm(t.lbResetC)) Store.remove("leaderboard"); }}>{t.lbReset}</button>
           </div>
         </div>
+        </React.Fragment>}
       </div></div>;
   }
 
