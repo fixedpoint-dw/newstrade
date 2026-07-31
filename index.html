@@ -542,7 +542,8 @@ en: {
   s3:"③ Game rules", s4:"④ Data files", s5:"⑤ All-time leaderboard",
   phaseName:{lobby:"Waiting room",betting:"Betting",reveal:"Results",finished:"Finished"},
   stRound:(a,b)=>`Round ${a} / ${b}`, stPlayers:(n,m)=>`${n} in room · ${m} playing`,
-  turnSec:"Seconds per betting turn", startGame:"Start game", endTurn:"End turn now",
+  turnSec:"Seconds per betting turn", revealSec:"Seconds on results screen",
+  startGame:"Start game", endTurn:"End turn now",
   nextRound:"Next round →", endGame:"End game & save scores", resetRoom:"Reset room",
   resetRoomC:"Reset the room? Capitals return to the start and everyone waits in the lobby.",
   needPlayers:"Waiting for players to join…", colBet:"Bet",
@@ -552,6 +553,7 @@ en: {
   rReveal:"Reveal mode", rRevealD:"Includes market-wrap stories — effectively leaks the answer (insider experiment). Default: noisy.",
   rBotsBuy:"Bots may buy info", rBotsBuyD:"The advanced bot decides for itself via cost-benefit.",
   rRounds:"Rounds per game", rRoundsD:n=>`Sampled without replacement from ${n} days.`,
+  rGap:"Show overnight gap", rGapD:"Today's open vs yesterday's close — knowable at bet time. Turn off if it feels too revealing.",
   dataD:"Put game_database_en.json / game_database_ko.json next to index.html in the repo.",
   dataLoaded:n=>`loaded · ${n} days`, dataMissing:"not found → built-in sample", reload:"Reload files",
   lbReset:"Reset leaderboard", lbResetC:"Delete the entire leaderboard? This cannot be undone.",
@@ -581,7 +583,7 @@ en: {
   hit:"Direction: HIT", miss:"Direction: MISS", sat:"Sat out",
   myChoice:"Your call", infoFee:"info fee", balance:"Balance",
   dirLong:"Long", dirShort:"Short", dirPass:"Pass", infoBadge:"📰 bought info",
-  waitNext:"Waiting for the host to start the next round…",
+  waitNext:"Waiting for the host to start the next round…", nextIn:s=>`Next round in ${s}s…`,
   next:"Next trading day →", finalBtn:"See final results",
   finalTitle:"Game over", busted:"You're bust — position sizing is a skill too.", completed:n=>`${n} rounds completed.`,
   thRank:"Rank", thPlayer:"Player", thCap:"Final capital", thRet:"Return", me:"(you)",
@@ -616,7 +618,8 @@ ko: {
   s3:"③ 게임 규칙", s4:"④ 데이터 파일", s5:"⑤ 명예의 전당",
   phaseName:{lobby:"대기실",betting:"베팅 중",reveal:"결과 공개",finished:"종료"},
   stRound:(a,b)=>`라운드 ${a} / ${b}`, stPlayers:(n,m)=>`룸 인원 ${n}명 · 참가 ${m}명`,
-  turnSec:"턴당 베팅 시간(초)", startGame:"게임 시작", endTurn:"턴 즉시 종료",
+  turnSec:"턴당 베팅 시간(초)", revealSec:"결과 화면 시간(초)",
+  startGame:"게임 시작", endTurn:"턴 즉시 종료",
   nextRound:"다음 라운드 →", endGame:"게임 종료·기록 저장", resetRoom:"룸 초기화",
   resetRoomC:"룸을 초기화할까요? 자본이 초기화되고 모두 대기실로 돌아갑니다.",
   needPlayers:"플레이어 입장을 기다리는 중…", colBet:"베팅",
@@ -626,6 +629,7 @@ ko: {
   rReveal:"공개 모드", rRevealD:"시황 기사 포함 = 사실상 정답 노출(내부정보 실험). 기본은 노이즈 모드.",
   rBotsBuy:"봇의 정보 구매 허용", rBotsBuyD:"고급 봇은 비용-편익을 따져 스스로 판단합니다.",
   rRounds:"게임당 라운드 수", rRoundsD:n=>`${n}일 중에서 중복 없이 추출됩니다.`,
+  rGap:"오버나이트 갭 표시", rGapD:"당일 시가 vs 전일 종가 — 베팅 시점에 알 수 있는 정보입니다. 과하다고 판단되면 끄세요.",
   dataD:"저장소에서 index.html과 같은 폴더에 game_database_en.json / game_database_ko.json을 두세요.",
   dataLoaded:n=>`로드됨 · ${n}일`, dataMissing:"없음 → 내장 샘플 사용", reload:"파일 다시 불러오기",
   lbReset:"리더보드 초기화", lbResetC:"리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.",
@@ -655,7 +659,7 @@ ko: {
   hit:"방향 적중", miss:"방향 빗나감", sat:"관망",
   myChoice:"나의 선택", infoFee:"정보비용", balance:"잔고",
   dirLong:"매수(Long)", dirShort:"매도(Short)", dirPass:"관망", infoBadge:"📰 정보구매",
-  waitNext:"호스트가 다음 라운드를 시작하길 기다리는 중…",
+  waitNext:"호스트가 다음 라운드를 시작하길 기다리는 중…", nextIn:s=>`${s}초 후 다음 라운드…`,
   next:"다음 거래일 →", finalBtn:"최종 결과 보기",
   finalTitle:"게임 종료", busted:"자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다.", completed:n=>`${n}라운드 완료.`,
   thRank:"순위", thPlayer:"참가자", thCap:"최종 자본", thRet:"수익률", me:"(나)",
@@ -666,7 +670,7 @@ ko: {
 const DEFAULT_CONFIG = {
   bots:{ novice:true, intermediate:true, advanced:true },
   infoFeature:true, infoPrice:10000, revealMode:false, botsCanBuy:true,
-  roundsPerSession:10, turnSeconds:60
+  roundsPerSession:10, turnSeconds:60, revealSeconds:5, showGap:true
 };
 
 const START_CAPITAL = 1000000;
@@ -712,6 +716,8 @@ function App(){
   const [RR, setRR] = useState({});            // room/results
   const [myBet, setMyBet] = useState({pos:0, bought:false});
   const settlingRef = useRef(false);
+  const allInRef = useRef(null);
+  const advRef = useRef(false);
 
   // ---- solo state ----
   const [sc, setSc] = useState(DEFAULT_CONFIG);
@@ -856,14 +862,17 @@ function App(){
         bots[b] = { dir:dec.dir, size:dec.size, rationale:dec.rationale, buys, pnl:bpnl, capital:nb[b] };
       });
       Store.set(`room/results/${RS.round}`, { r, dateId:RS.dateIds[RS.round], players, bots });
-      Store.set("room/state", { ...RS, phase:"reveal", botCaps:nb, turnEndsAt:null });
+      Store.set("room/state", { ...RS, phase:"reveal", botCaps:nb, turnEndsAt:null,
+        revealEndsAt: now() + (cfg.revealSeconds||5)*1000 });
     } finally { setTimeout(()=>{ settlingRef.current=false; }, 1500); }
   }
 
   function hostNext(){
-    if(!RS || RS.phase!=="reveal") return;
-    Store.set("room/state", { ...RS, round:RS.round+1, phase:"betting",
+    if(!RS || RS.phase!=="reveal" || advRef.current) return;
+    advRef.current = true;
+    Store.set("room/state", { ...RS, round:RS.round+1, phase:"betting", revealEndsAt:null,
       turnEndsAt: now() + (cfg.turnSeconds||60)*1000 });
+    setTimeout(()=>{ advRef.current = false; }, 1500);
   }
 
   function hostEnd(){
@@ -885,9 +894,24 @@ function App(){
     Store.set("room/state", { phase:"lobby" });
   }
 
-  // host auto-settle when timer expires (host tab must stay open)
+  // host automation (host tab must stay open):
+  //  - betting: settle on timer expiry, or ~1.5s after every active player has bet
+  //  - reveal: auto-advance after revealSeconds (except after the last round)
   useEffect(()=>{
-    if(adminOk && RS && RS.phase==="betting" && RS.turnEndsAt && now() > RS.turnEndsAt) hostSettle();
+    if(!adminOk || !RS){ allInRef.current = null; return; }
+    if(RS.phase==="betting"){
+      if(RS.turnEndsAt && now() > RS.turnEndsAt){ hostSettle(); return; }
+      const act = Object.entries(RP).filter(([,p])=>p.playing && !p.busted);
+      const bets = RB[RS.round]||{};
+      const allIn = act.length>0 && act.every(([id2])=>{ const b=bets[id2]; return b && (b.pos!=null || b.dir!=null); });
+      if(allIn){
+        if(!allInRef.current) allInRef.current = now();
+        else if(now() - allInRef.current > 1500) hostSettle();
+      } else allInRef.current = null;
+    } else {
+      allInRef.current = null;
+      if(RS.phase==="reveal" && RS.revealEndsAt && now() > RS.revealEndsAt && (RS.round+1) < RS.total) hostNext();
+    }
   });
 
   /* ================= SOLO ================= */
@@ -952,12 +976,12 @@ function App(){
     const C = v => v==null? "muted" : v>0? "up" : v<0? "down" : "muted";
     const items = [
       [t.mdPrev,  P(m.prev),  C(m.prev)],
-      [t.mdGap,   P(m.gap),   C(m.gap)],
+      (cfg.showGap!==false && m.gap!=null) ? [t.mdGap, P(m.gap), C(m.gap)] : null,
       [t.mdTrend, P(m.trend5),C(m.trend5)],
       [t.mdVix,   m.vix==null? "—" : m.vix.toFixed(1), m.vix!=null&&m.vix>=25? "up":"muted"],
       [t.mdTnx,   m.tnx==null? "—" : m.tnx.toFixed(2)+"%"+(m.tnx_bp!=null? ` (${m.tnx_bp>=0?"+":""}${m.tnx_bp}bp)`:""), "muted"],
       [t.mdWti,   P(m.wti),   C(m.wti)],
-    ];
+    ].filter(Boolean);
     return <div style={{margin:"12px 0 2px"}}>
       <div className="cutline"><span>{t.marketData}</span></div>
       <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:6}}>
@@ -1118,6 +1142,11 @@ function App(){
             <input type="range" min="20" max="180" step="10" value={cfg.turnSeconds||60} style={{width:180}}
               onChange={e=>saveCfg({...cfg, turnSeconds:+e.target.value})} />
           </div>
+          <div className="row">
+            <div><div className="t">{t.revealSec}: <b className="tnum">{cfg.revealSeconds||5}s</b></div></div>
+            <input type="range" min="3" max="30" step="1" value={cfg.revealSeconds||5} style={{width:180}}
+              onChange={e=>saveCfg({...cfg, revealSeconds:+e.target.value})} />
+          </div>
           {Object.keys(RP).length===0
             ? <p className="muted" style={{fontSize:12.5, padding:"8px 0 2px"}}>{t.needPlayers}</p>
             : <div style={{maxHeight:220, overflowY:"auto", marginTop:6}}>
@@ -1165,6 +1194,9 @@ function App(){
           <Row tt={t.rRounds} d={t.rRoundsD(anyDb.length)}>
             <input type="number" min="1" max="50" style={{width:90, textAlign:"right"}} value={cfg.roundsPerSession}
               onChange={e=>saveCfg({...cfg, roundsPerSession:Math.max(1, Math.min(50, +e.target.value||1))})} />
+          </Row>
+          <Row tt={t.rGap} d={t.rGapD}>
+            <Switch on={cfg.showGap!==false} set={v=>saveCfg({...cfg, showGap:v})} />
           </Row>
         </div>
 
@@ -1332,7 +1364,11 @@ function App(){
             {mine && <div className={"tnum "+cls(mine.pnl-0.000001)} style={{fontSize:26, fontWeight:900, marginTop:2}}>{signKRW(mine.pnl)}</div>}
             {mine && <div className="muted tnum" style={{fontSize:13}}>{t.balance} {KRW(mine.capital)}</div>}
             {me.busted && !mine && <p style={{marginTop:12, fontWeight:800}}>{t.wiped}</p>}
-            <p className="muted" style={{fontSize:12.5, marginTop:12}}>{t.waitNext}</p>
+            <p className="muted" style={{fontSize:12.5, marginTop:12}}>
+              {RS.revealEndsAt && (RS.round+1)<RS.total && RS.revealEndsAt>now()
+                ? t.nextIn(Math.max(0, Math.ceil((RS.revealEndsAt-now())/1000)))
+                : t.waitNext}
+            </p>
           </div>
           <div className="grid play" style={{marginTop:16, alignItems:"start"}}>
             <div className="card tight">
