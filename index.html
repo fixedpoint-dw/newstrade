@@ -1274,10 +1274,11 @@ function App(){
             <Switch on={cfg.infoFeature} set={v=>saveCfg({...cfg, infoFeature:v})} />
           </Row>
           {cfg.infoFeature && <div className="subrows">
-            <Row tt={t.rPrice} d={t.rPriceD}>
-              <input type="number" step="1000" min="0" style={{width:120, textAlign:"right"}} value={cfg.infoPrice}
-                onChange={e=>saveCfg({...cfg, infoPrice:Math.max(0, +e.target.value||0)})} />
-            </Row>
+            <div className="row">
+              <div><div className="t">{t.rPrice}: <b className="tnum">{KRW(cfg.infoPrice)}</b></div><div className="d">{t.rPriceD}</div></div>
+              <input type="range" min="0" max="50000" step="1000" value={cfg.infoPrice} style={{width:180}}
+                onChange={e=>saveCfg({...cfg, infoPrice:+e.target.value})} />
+            </div>
             <Row tt={t.rReveal} d={t.rRevealD}>
               <Switch on={cfg.revealMode} set={v=>saveCfg({...cfg, revealMode:v})} />
             </Row>
