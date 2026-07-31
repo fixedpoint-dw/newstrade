@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>조간 트레이더 — Morning Paper Trader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;900&display=swap" rel="stylesheet" />
+
+<!-- React + Babel (JSX 브라우저 컴파일) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --paper:#f5f2e9; --card:#fffdf7; --ink:#1b1c20; --muted:#726c5e;
+  --rule:#d9d3c2; --rule-dark:#1b1c20;
+  --up:#d5342c; --up-bg:#fbeeed; --down:#1f5fc4; --down-bg:#ecf2fb;
+  --accent:#8a6d1f;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55;
+}
+.serif{font-family:"Noto Serif KR","Nanum Myeongjo",serif;}
+.tnum{font-variant-numeric:tabular-nums;}
+.up{color:var(--up);} .down{color:var(--down);} .muted{color:var(--muted);}
+
+/* layout */
+.topbar{background:var(--ink); color:#efece2; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.topbar .brand{font-family:"Noto Serif KR",serif; font-weight:900; font-size:19px; letter-spacing:-0.5px;}
+.topbar .sub{font-size:11px; color:#9a9587;}
+.topbar a,.topbar button.link{color:#b8b2a2; background:none; border:none; font-size:12px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;}
+.topbar a:hover,.topbar button.link:hover{color:#fff;}
+.wrap{max-width:1000px; margin:0 auto; padding:22px 16px 60px;}
+.wrap.narrow{max-width:680px;}
+.grid{display:grid; gap:18px;}
+@media(min-width:820px){ .grid.play{grid-template-columns:3fr 2fr; align-items:start;} .grid.bots{grid-template-columns:1fr 1fr 1fr;} }
+
+/* cards */
+.card{background:var(--card); border:1px solid var(--rule); box-shadow:0 1px 0 rgba(27,28,32,.06); padding:22px;}
+.card.tight{padding:16px;}
+
+/* newspaper */
+.masthead{border-bottom:4px double var(--rule-dark); padding-bottom:8px; margin-bottom:14px;}
+.masthead h2{font-family:"Noto Serif KR",serif; font-weight:900; font-size:24px; letter-spacing:-1px;}
+.masthead .edition{display:flex; justify-content:space-between; align-items:baseline; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase;}
+.headlines{list-style:none;}
+.headlines li{font-family:"Noto Serif KR",serif; font-weight:600; font-size:16.5px; line-height:1.45; padding:9px 0 9px 16px; border-left:3px solid var(--rule); margin-bottom:2px;}
+.headlines li:first-child{font-size:18px; border-left-color:var(--ink);}
+.tomorrow{border:1px dashed var(--muted); background:#faf7ee; padding:14px; margin-top:14px;}
+.tomorrow .thead{display:flex; justify-content:space-between; border-bottom:2px solid var(--ink); padding-bottom:5px; margin-bottom:10px; font-family:"Noto Serif KR",serif; font-weight:900;}
+.cutline{border-top:1px dashed var(--rule); margin:16px 0 12px; position:relative;}
+.cutline span{position:absolute; top:-9px; left:0; background:var(--card); padding-right:8px; font-size:10px; color:var(--muted); letter-spacing:2px;}
+
+/* buttons & inputs */
+.btn{display:inline-block; width:100%; border:2px solid var(--ink); background:var(--ink); color:#fff; font-weight:800; font-size:15px; padding:12px; cursor:pointer; transition:.12s; text-align:center;}
+.btn:hover{background:#3a3b41; border-color:#3a3b41;}
+.btn:disabled{opacity:.35; cursor:not-allowed;}
+.btn.ghost{background:transparent; color:var(--ink);}
+.btn.ghost:hover{background:var(--ink); color:#fff;}
+.btn.long{background:transparent; border-color:var(--up); color:var(--up);}
+.btn.long.on,.btn.long:hover{background:var(--up); color:#fff;}
+.btn.short{background:transparent; border-color:var(--down); color:var(--down);}
+.btn.short.on,.btn.short:hover{background:var(--down); color:#fff;}
+.btn.sm{padding:8px 10px; font-size:13px; width:auto;}
+.textbtn{background:none; border:none; color:var(--muted); text-decoration:underline; text-underline-offset:3px; cursor:pointer; font-size:13px;}
+.textbtn:hover{color:var(--ink);}
+.textbtn.danger{color:var(--up);}
+input[type=text],input[type=number],input[type=password]{
+  width:100%; border:1.5px solid #a8a291; background:#fff; padding:10px 12px; font-size:15px; font-family:inherit;
+}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus{outline:2px solid var(--ink); outline-offset:-1px;}
+input[type=range]{width:100%; accent-color:var(--ink);}
+input[type=file]{font-size:12px;}
+
+/* pills, badges */
+.pill{display:inline-block; font-size:11.5px; padding:3px 10px; border:1px solid var(--rule); border-radius:999px; background:#fff; color:var(--muted); margin:2px 4px 2px 0;}
+.badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; border:1px solid;}
+.badge.novice{background:#fdf3dc; color:#8a6410; border-color:#e5c97e;}
+.badge.intermediate{background:#e3f0fb; color:#1c5a9e; border-color:#9cc4e8;}
+.badge.advanced{background:#efe8fb; color:#5b3aa6; border-color:#c3aef0;}
+
+/* steps */
+.step{font-size:11px; font-weight:800; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;}
+.step b{color:var(--ink);}
+
+/* tables */
+table{width:100%; border-collapse:collapse; font-size:14px;}
+th{font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); text-align:left; border-bottom:2px solid var(--ink); padding:6px 4px;}
+td{border-bottom:1px solid var(--rule); padding:8px 4px;}
+tr.me{background:#f3efe2; font-weight:700;}
+.r{text-align:right;}
+
+/* result hero */
+.hero{text-align:center; padding:34px 22px;}
+.hero .label{font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--muted);}
+.hero .big{font-family:"Noto Serif KR",serif; font-weight:900; font-size:66px; line-height:1.1; letter-spacing:-2px;}
+.hero .verdict{display:inline-block; margin-top:6px; font-size:13px; font-weight:800; padding:3px 14px; border-radius:999px;}
+.verdict.hit{background:var(--up-bg); color:var(--up);}
+.verdict.miss{background:#eee9dc; color:var(--muted);}
+.verdict.hit.short{background:var(--down-bg); color:var(--down);}
+
+/* switches (admin) */
+.row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px solid var(--rule);}
+.row:last-child{border-bottom:none;}
+.row .t{font-weight:700;}
+.row .d{font-size:12.5px; color:var(--muted); margin-top:2px;}
+.switch{position:relative; width:46px; height:26px; flex:none;}
+.switch input{opacity:0; width:0; height:0;}
+.switch .track{position:absolute; inset:0; background:#c9c3b2; border-radius:999px; transition:.15s; cursor:pointer;}
+.switch .track:before{content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.switch input:checked + .track{background:var(--ink);}
+.switch input:checked + .track:before{transform:translateX(20px);}
+.subrows{margin-left:6px; padding-left:14px; border-left:2px solid var(--rule);}
+
+/* admin */
+.admin-h{display:flex; align-items:baseline; justify-content:space-between; border-bottom:4px double var(--rule-dark); padding-bottom:10px; margin-bottom:18px;}
+.admin-h h1{font-family:"Noto Serif KR",serif; font-weight:900; font-size:26px;}
+.section-t{font-size:12px; font-weight:900; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin:0 0 4px;}
+.saveflash{font-size:12px; color:var(--accent); font-weight:700;}
+.notice{background:#fdf6df; border:1px solid #e5d089; padding:10px 14px; font-size:13px; margin-bottom:16px;}
+.notice.err{background:#fbeeed; border-color:#e3a29d;}
+
+/* modal */
+.modal-bg{position:fixed; inset:0; background:rgba(20,20,24,.55); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50;}
+.modal{background:var(--card); border:1px solid var(--rule); padding:24px; width:100%; max-width:380px;}
+
+/* misc */
+.kv{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:18px 0;}
+.kv .box{background:#f6f2e6; border:1px solid var(--rule); padding:10px 12px;}
+.kv .k{font-size:11px; color:var(--muted); letter-spacing:1px;}
+.kv .v{font-weight:800; margin-top:2px;}
+.footer-note{font-size:11.5px; color:var(--muted); margin-top:14px;}
+.progress{font-size:12px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase;}
+h3.mini{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:22px 0 8px; font-weight:900;}
+.fade{animation:fade .35s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion: reduce){ .fade{animation:none;} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ================================================================
+   ① 설정: 이 두 곳만 수정하면 됩니다
+   ================================================================ */
+
+// 1) Firebase 콘솔 → 프로젝트 설정 → 웹 앱에서 복사한 firebaseConfig 붙여넣기
+//    (포트폴리오 게임과 같은 프로젝트를 써도 됩니다. 데이터 경로가 분리되어 있습니다.)
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:xxxxxxxxxxxx"
+};
+
+// 2) 관리자 비밀번호 (배포 전 반드시 변경!)
+const ADMIN_PASSCODE = "admin1234";
+
+// 3) 게임이 베팅하는 지수 이름 (표시용). 한국판으로 돌리려면 "KOSPI"로 변경.
+const INDEX_NAME = "S&P 500";
+
+/* ================================================================
+   데이터 계층: Firebase 연결 시 실시간 공유, 미연결 시 데모 모드
+   ================================================================ */
+const FB_PATH = "morningPaperTrader"; // 포트폴리오 게임과 충돌하지 않는 별도 경로
+
+let fbdb = null, DEMO = true;
+try {
+  if (typeof firebase !== "undefined" && firebaseConfig.apiKey && firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY") {
+    firebase.initializeApp(firebaseConfig);
+    fbdb = firebase.database();
+    DEMO = false;
+  }
+} catch (e) { console.warn("Firebase init 실패 → 데모 모드", e); }
+
+// 데모 모드 저장소 (localStorage 실패 시 메모리)
+const _mem = {};
+function lsGet(k){ try{ const v = localStorage.getItem(k); return v==null? (_mem[k]??null) : v; }catch(e){ return _mem[k]??null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} _mem[k]=v; }
+const _subs = {}; // 데모 모드 실시간 흉내
+function _emit(k,v){ (_subs[k]||[]).forEach(cb=>cb(v)); }
+
+const Store = {
+  on(key, cb){                       // key: "config" | "leaderboard" | "database"
+    if (fbdb) { fbdb.ref(FB_PATH+"/"+key).on("value", s => cb(s.val())); }
+    else {
+      (_subs[key]=_subs[key]||[]).push(cb);
+      const raw = lsGet("mpt_"+key);
+      cb(raw ? JSON.parse(raw) : null);
+    }
+  },
+  set(key, val){
+    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).set(val);
+    lsSet("mpt_"+key, JSON.stringify(val)); _emit(key,val); return Promise.resolve();
+  },
+  push(key, val){
+    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).push(val);
+    const raw = lsGet("mpt_"+key); const obj = raw? JSON.parse(raw) : {};
+    obj["k"+Date.now()+Math.random().toString(36).slice(2,6)] = val;
+    lsSet("mpt_"+key, JSON.stringify(obj)); _emit(key,obj); return Promise.resolve();
+  },
+  remove(key){
+    if (fbdb) return fbdb.ref(FB_PATH+"/"+key).remove();
+    lsSet("mpt_"+key, "null"); _emit(key,null); return Promise.resolve();
+  }
+};
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const SAMPLE_DB = [
+  {
+    id: "d001", date: "hidden",
+    headlines: [
+      "美 연준, 금리 동결했지만 '연내 추가 인상' 시사",
+      "1월 수출 두 달 연속 감소…반도체 수출 30%대 급감",
+      "원·달러 환율 1,320원 돌파…석 달 만에 최고",
+      "中 제조업 PMI 예상 밖 반등…경기 회복 기대감",
+      "국고채 3년물 금리 연중 최고치 경신"
+    ],
+    kospi_return: -0.0112,
+    next_day_noisy: [
+      "정부, 반도체 세액공제 확대안 국회 제출",
+      "美 국채금리 상승세 지속…달러 강세 재개",
+      "기재부 '수출 부진 장기화 대비 지원책 검토'"
+    ],
+    next_day_reveal: [
+      "코스피, 외국인 매도에 1% 넘게 하락 마감",
+      "정부, 반도체 세액공제 확대안 국회 제출",
+      "美 국채금리 상승세 지속…달러 강세 재개"
+    ],
+    bots: {
+      novice: {
+        base: { dir: -1, size: 80, rationale: "수출 급감에 환율까지 올랐다니 분위기가 나쁘다. 크게 숏." },
+        informed: { buy: false, dir: -1, size: 80, rationale: "정보 없이도 방향은 뻔해 보인다." }
+      },
+      intermediate: {
+        base: { dir: -1, size: 40, rationale: "금리·환율·수출 모두 악재 우위. 다만 PMI 반등이 상쇄 요인이라 중간 규모 숏." },
+        informed: { buy: true, dir: -1, size: 55, rationale: "익일 조간도 금리 상승 지속을 시사. 숏 확신이 다소 강화됨." }
+      },
+      advanced: {
+        base: { dir: -1, size: 25, rationale: "악재가 이미 가격에 반영됐을 가능성이 높다. 일일 방향 예측의 기대 엣지는 작으므로 소규모 숏." },
+        informed: { buy: false, dir: -1, size: 25, rationale: "정보 가격 대비 기대 이득(자본×|r|×정확도 개선)이 작아 구매 포기." }
+      }
+    }
+  },
+  {
+    id: "d002", date: "hidden",
+    headlines: [
+      "美 CPI 예상치 하회…인플레 둔화 신호",
+      "한은 총재 '물가 안정 확인 전까지 긴축 기조 유지'",
+      "외국인, 코스피 5거래일 연속 순매수",
+      "삼성전자·SK하이닉스 감산 효과에 D램 현물가 반등",
+      "국제유가 배럴당 70달러선 하락"
+    ],
+    kospi_return: 0.0134,
+    next_day_noisy: [
+      "美 소매판매 견조…경기 연착륙 기대",
+      "반도체 업황 바닥론 확산…증권가 목표주가 상향 잇따라",
+      "원화 강세 지속 전망…수입물가 부담 완화"
+    ],
+    next_day_reveal: [
+      "코스피, 기관·외국인 쌍끌이 매수에 1.3% 급등",
+      "美 소매판매 견조…경기 연착륙 기대",
+      "반도체 업황 바닥론 확산…증권가 목표주가 상향 잇따라"
+    ],
+    bots: {
+      novice: {
+        base: { dir: 1, size: 90, rationale: "CPI도 낮고 외국인도 사고 있다. 무조건 롱!" },
+        informed: { buy: false, dir: 1, size: 90, rationale: "이미 확신이 있어 돈 쓸 필요 없다." }
+      },
+      intermediate: {
+        base: { dir: 1, size: 45, rationale: "인플레 둔화 + 외국인 수급 + 반도체 반등. 호재 우위지만 한은 매파 발언이 부담." },
+        informed: { buy: true, dir: 1, size: 60, rationale: "익일 뉴스 흐름도 우호적. 롱 사이즈 확대." }
+      },
+      advanced: {
+        base: { dir: 1, size: 30, rationale: "연속 순매수는 이미 반영된 정보. 다만 CPI 서프라이즈는 발표 당일 반영 여지가 있어 소폭 롱." },
+        informed: { buy: true, dir: 1, size: 45, rationale: "불확실성이 높은 국면이라 정보의 한계가치가 가격을 상회한다고 판단, 구매." }
+      }
+    }
+  },
+  {
+    id: "d003", date: "hidden",
+    headlines: [
+      "무디스, 韓 신용등급 전망 '안정적' 유지",
+      "1분기 GDP 성장률 0.3%…시장 예상 부합",
+      "정부, 부동산 PF 연착륙 대책 발표 예정",
+      "엔화 약세 심화…수출 경쟁력 우려 확산",
+      "美 고용지표 발표 앞두고 관망세"
+    ],
+    kospi_return: 0.0021,
+    next_day_noisy: [
+      "美 고용 서프라이즈…비농업 일자리 예상 상회",
+      "PF 대책 발표…건설업계 '급한 불은 껐다'",
+      "일본은행 정책 수정 가능성에 엔화 변동성 확대"
+    ],
+    next_day_reveal: [
+      "코스피, 강보합 마감…거래대금은 연중 최저",
+      "美 고용 서프라이즈…비농업 일자리 예상 상회",
+      "PF 대책 발표…건설업계 '급한 불은 껐다'"
+    ],
+    bots: {
+      novice: { base: { dir: 1, size: 60, rationale: "신용등급 유지는 좋은 뉴스니까 롱." }, informed: { buy: false, dir: 1, size: 60, rationale: "그냥 롱." } },
+      intermediate: { base: { dir: 0, size: 0, rationale: "재료 혼재 + 고용지표 대기 관망세. 엣지 없음, 패스." }, informed: { buy: false, dir: 0, size: 0, rationale: "관망 국면에서 정보값이 낮다고 판단." } },
+      advanced: { base: { dir: 0, size: 0, rationale: "모든 헤드라인이 예상 부합/기발표 재료. 기대수익률 ≈ 0, 베팅 안 함." }, informed: { buy: false, dir: 0, size: 0, rationale: "기대 변동성 낮은 날의 정보 구매는 음(-)의 NPV." } }
+    }
+  },
+  {
+    id: "d004", date: "hidden",
+    headlines: [
+      "美 지역은행 위기설 재점화…SVB發 불안 확산",
+      "코스피 야간선물 2% 급락…글로벌 위험회피 심화",
+      "금융당국 '국내 은행 건전성 문제없다' 긴급 진화",
+      "안전자산 선호에 금값 사상 최고치 근접",
+      "환율 장중 1,340원 터치…당국 구두개입"
+    ],
+    kospi_return: -0.0245,
+    next_day_noisy: [
+      "美 재무부·연준, 예금 전액 보호 조치 발표",
+      "글로벌 IB '한국 은행권 직접 익스포저 제한적'",
+      "변동성지수 급등…투자심리 위축 지속"
+    ],
+    next_day_reveal: [
+      "코스피 2.5% 폭락…2개월 만에 최대 낙폭",
+      "美 재무부·연준, 예금 전액 보호 조치 발표",
+      "글로벌 IB '한국 은행권 직접 익스포저 제한적'"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 100, rationale: "은행 위기다! 전액 숏!" }, informed: { buy: false, dir: -1, size: 100, rationale: "볼 것도 없다." } },
+      intermediate: { base: { dir: -1, size: 60, rationale: "야간선물 급락은 강한 시그널. 갭하락 출발 가능성에 숏." }, informed: { buy: true, dir: -1, size: 70, rationale: "익일에도 위험회피 지속 확인. 숏 유지·확대." } },
+      advanced: { base: { dir: -1, size: 40, rationale: "야간선물이 이미 -2%를 반영. 추가 하락 엣지는 제한적이나 위기 국면의 모멘텀을 감안해 중간 숏." }, informed: { buy: true, dir: -1, size: 50, rationale: "고변동성 국면은 정보의 기대가치가 가격을 상회. 구매 후 숏 소폭 확대." } }
+    }
+  },
+  {
+    id: "d005", date: "hidden",
+    headlines: [
+      "OPEC+ 깜짝 감산 발표…유가 급등",
+      "3월 소비자물가 4%대 재진입 우려",
+      "美-中 반도체 갈등 격화…추가 수출규제 검토",
+      "개인 투자자 예탁금 50조원 회복",
+      "IMF, 세계 경제성장률 전망 소폭 하향"
+    ],
+    kospi_return: -0.0058,
+    next_day_noisy: [
+      "유가발 인플레 재점화 우려에 채권금리 상승",
+      "산업부 '반도체 규제 영향 최소화 총력'",
+      "항공·운송주 실적 부담 전망 확산"
+    ],
+    next_day_reveal: [
+      "코스피, 유가 충격에 소폭 하락…에너지주는 강세",
+      "유가발 인플레 재점화 우려에 채권금리 상승",
+      "산업부 '반도체 규제 영향 최소화 총력'"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 70, rationale: "유가 급등에 물가 걱정까지, 숏." }, informed: { buy: false, dir: -1, size: 70, rationale: "안 사도 된다." } },
+      intermediate: { base: { dir: -1, size: 35, rationale: "비용 인상 인플레 + 규제 리스크. 다만 예탁금 증가는 수급 하방 지지. 소규모 숏." }, informed: { buy: false, dir: -1, size: 35, rationale: "혼재 국면이지만 만원의 가치는 없다고 판단." } },
+      advanced: { base: { dir: 0, size: 0, rationale: "유가 급등은 개장 전 이미 글로벌 시장에 반영. 국내 증시 추가 반응 방향 불확실, 패스." }, informed: { buy: true, dir: -1, size: 20, rationale: "판단 불가 국면이라 정보 구매. 채권금리 상승 확인 후 소규모 숏." } }
+    }
+  },
+  {
+    id: "d006", date: "hidden",
+    headlines: [
+      "美 대선 앞두고 정책 불확실성 고조",
+      "10월 수출 5.7% 증가…13개월 연속 플러스",
+      "한은, 기준금리 인하 소수의견 등장",
+      "밸류업 프로그램 세제 인센티브 구체안 발표",
+      "위안화 약세에 아시아 통화 동반 압박"
+    ],
+    kospi_return: 0.0067,
+    next_day_noisy: [
+      "밸류업 공시 기업 잇따라…지주사 주주환원 확대",
+      "美 국채금리 안정세…위험자산 선호 회복 조짐",
+      "수출 호조에 4분기 성장률 전망 상향"
+    ],
+    next_day_reveal: [
+      "코스피, 저PBR주 강세에 0.7% 상승 마감",
+      "밸류업 공시 기업 잇따라…지주사 주주환원 확대",
+      "美 국채금리 안정세…위험자산 선호 회복 조짐"
+    ],
+    bots: {
+      novice: { base: { dir: 1, size: 50, rationale: "수출도 좋고 금리 인하 얘기도 나오니 롱." }, informed: { buy: false, dir: 1, size: 50, rationale: "느낌이 좋다." } },
+      intermediate: { base: { dir: 1, size: 40, rationale: "수출 호조 + 완화 기대 + 밸류업 재료. 대선 불확실성만 조심하며 롱." }, informed: { buy: true, dir: 1, size: 50, rationale: "익일 저PBR 모멘텀 지속 시사. 롱 확대." } },
+      advanced: { base: { dir: 1, size: 20, rationale: "정책 재료(밸류업)는 당일 반영이 불완전할 때가 있어 소폭 롱. 다만 기대 엣지는 작다." }, informed: { buy: false, dir: 1, size: 20, rationale: "이미 방향 판단 완료. 정보의 한계가치 < 가격." } }
+    }
+  },
+  {
+    id: "d007", date: "hidden",
+    headlines: [
+      "8월 취업자 증가폭 3개월 만에 최저",
+      "가계부채 증가세 지속…주담대 한 달 새 7조 늘어",
+      "美 잭슨홀 회의 앞두고 글로벌 증시 관망",
+      "2차전지주 수급 쏠림 완화 조짐",
+      "중국 부동산 개발업체 디폴트 우려 재부상"
+    ],
+    kospi_return: -0.0031,
+    next_day_noisy: [
+      "연준 의장 '물가와의 싸움 아직 안 끝나' 매파 발언",
+      "금융당국, 가계대출 관리 강화 주문",
+      "中 정부 부동산 부양책 검토 보도"
+    ],
+    next_day_reveal: [
+      "코스피 소폭 하락…잭슨홀 경계감에 거래 위축",
+      "연준 의장 '물가와의 싸움 아직 안 끝나' 매파 발언",
+      "금융당국, 가계대출 관리 강화 주문"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 60, rationale: "고용도 나쁘고 중국도 불안하다. 숏." }, informed: { buy: false, dir: -1, size: 60, rationale: "패스할 이유 없음." } },
+      intermediate: { base: { dir: 0, size: 0, rationale: "잭슨홀 대기 관망장. 방향성 베팅은 동전 던지기, 패스." }, informed: { buy: true, dir: -1, size: 30, rationale: "매파 발언 확인. 소규모 숏으로 전환." } },
+      advanced: { base: { dir: 0, size: 0, rationale: "이벤트 전일은 기대수익 대비 분산만 큰 날. 합리적 선택은 무베팅." }, informed: { buy: true, dir: -1, size: 25, rationale: "이벤트 결과를 담은 정보는 가치가 높다. 구매 후 숏." } }
+    }
+  },
+  {
+    id: "d008", date: "hidden",
+    headlines: [
+      "MSCI 선진국지수 편입 불발…'외환시장 접근성 미흡'",
+      "5월 경상수지 넉 달 연속 흑자",
+      "테마주 급등락에 금융당국 '불공정거래 집중 단속'",
+      "글로벌 반도체 장비 투자 사이클 회복 전망",
+      "유럽 경기침체 우려에 유로화 약세"
+    ],
+    kospi_return: 0.0043,
+    next_day_noisy: [
+      "정부, 외환시장 개장시간 연장 등 제도 개선 추진",
+      "반도체 소부장 수주 회복세 뚜렷",
+      "ECB 추가 긴축 시사에 유럽 증시 약세"
+    ],
+    next_day_reveal: [
+      "코스피, 반도체 강세에 상승 마감",
+      "정부, 외환시장 개장시간 연장 등 제도 개선 추진",
+      "반도체 소부장 수주 회복세 뚜렷"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 50, rationale: "MSCI 불발은 실망 매물 나올 것 같다. 숏." }, informed: { buy: false, dir: -1, size: 50, rationale: "직감을 믿는다." } },
+      intermediate: { base: { dir: 1, size: 25, rationale: "MSCI 불발은 사전 예상된 재료. 반도체 사이클 회복 기대에 소폭 롱." }, informed: { buy: false, dir: 1, size: 25, rationale: "판단 유지." } },
+      advanced: { base: { dir: 1, size: 15, rationale: "예상된 악재는 가격에 선반영. 잔여 재료는 반도체 회복 기대가 우위, 미세 롱." }, informed: { buy: false, dir: 1, size: 15, rationale: "저변동성 예상일, 정보 구매는 비효율." } }
+    }
+  },
+  {
+    id: "d009", date: "hidden",
+    headlines: [
+      "북한, 동해상 탄도미사일 발사…지정학 리스크 부각",
+      "美 기술주 실적 서프라이즈에 나스닥 급등",
+      "2월 반도체 생산 전월 대비 두 자릿수 증가",
+      "공매도 전면 재개 시기 두고 논란 지속",
+      "국민연금, 국내주식 비중 조정 검토 보도"
+    ],
+    kospi_return: 0.0089,
+    next_day_noisy: [
+      "글로벌 AI 투자 열풍…국내 관련주 실적 기대",
+      "지정학 리스크 영향 제한적 평가 확산",
+      "연기금 수급 우려 과도하다는 분석 잇따라"
+    ],
+    next_day_reveal: [
+      "코스피, 나스닥 훈풍에 0.9% 상승",
+      "글로벌 AI 투자 열풍…국내 관련주 실적 기대",
+      "지정학 리스크 영향 제한적 평가 확산"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 70, rationale: "미사일 발사는 큰 악재. 숏." }, informed: { buy: false, dir: -1, size: 70, rationale: "뉴스가 무섭다." } },
+      intermediate: { base: { dir: 1, size: 40, rationale: "북한 리스크는 역사적으로 당일 영향 미미. 나스닥 급등 훈풍이 지배적, 롱." }, informed: { buy: false, dir: 1, size: 40, rationale: "확신 유지." } },
+      advanced: { base: { dir: 1, size: 35, rationale: "전일 미국 증시 수익률은 한국 개장에 가장 강한 예측력을 갖는 변수 중 하나. 롱." }, informed: { buy: false, dir: 1, size: 35, rationale: "이미 강한 시그널 보유, 추가 정보 불필요." } }
+    }
+  },
+  {
+    id: "d010", date: "hidden",
+    headlines: [
+      "정부, 내년 예산안 긴축 편성…재정 건전성 방점",
+      "9월 FOMC 의사록 '고금리 장기화' 재확인",
+      "저축은행 연체율 상승…부동산 PF 부실 우려",
+      "조선업 수주 랠리 지속…3년치 일감 확보",
+      "김장철 앞두고 농산물 물가 급등"
+    ],
+    kospi_return: -0.0076,
+    next_day_noisy: [
+      "美 국채 10년물 금리 연고점 경신",
+      "금융위 '2금융권 PF 리스크 선제 관리'",
+      "수출입은행, 조선사 RG 한도 확대 검토"
+    ],
+    next_day_reveal: [
+      "코스피, 고금리 부담에 0.8% 하락 마감",
+      "美 국채 10년물 금리 연고점 경신",
+      "금융위 '2금융권 PF 리스크 선제 관리'"
+    ],
+    bots: {
+      novice: { base: { dir: -1, size: 65, rationale: "고금리에 PF 부실까지, 숏." }, informed: { buy: false, dir: -1, size: 65, rationale: "고민 없이 숏." } },
+      intermediate: { base: { dir: -1, size: 45, rationale: "고금리 장기화 + 신용 리스크 조합은 지수에 부정적. 중간 숏." }, informed: { buy: true, dir: -1, size: 55, rationale: "금리 연고점 경신 확인, 숏 확대." } },
+      advanced: { base: { dir: -1, size: 30, rationale: "의사록은 기지 정보에 가깝지만 금리 상승 국면의 음(-) 드리프트를 감안, 소규모 숏." }, informed: { buy: false, dir: -1, size: 30, rationale: "방향 확신이 이미 충분, 정보 구매 기대이득 < 가격." } }
+    }
+  }
+];
+
+const BOT_META = {
+  novice:      { name:"초급 봇", cls:"novice",      desc:"헤드라인 분위기에 직관적으로 크게 베팅" },
+  intermediate:{ name:"중급 봇", cls:"intermediate", desc:"거시 논리로 호재·악재의 상쇄를 계산" },
+  advanced:    { name:"고급 봇", cls:"advanced",     desc:"'이미 가격에 반영됐는가'와 정보의 가치까지 판단" }
+};
+
+const DEFAULT_CONFIG = {
+  bots:{ novice:true, intermediate:true, advanced:true },
+  infoFeature:true, infoPrice:10000, revealMode:false, botsCanBuy:true,
+  roundsPerSession:10
+};
+
+const START_CAPITAL = 1000000;
+const KRW = n => "₩" + Math.round(n).toLocaleString("ko-KR");
+const signKRW = n => (n>=0?"+":"−") + KRW(Math.abs(n)).slice(1) ;
+const pctf = r => (r>=0?"+":"") + (r*100).toFixed(2) + "%";
+const cls = r => r>0? "up" : r<0? "down" : "muted";
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+const validDb = d => Array.isArray(d) && d.length>0 && d.every(x=>x && x.headlines && typeof x.kospi_return==="number" && x.bots && x.next_day_noisy && x.next_day_reveal);
+
+function App(){
+  const [view, setView] = useState(location.hash==="#admin" ? "adminLogin" : "lobby");
+  const [cfg, setCfg] = useState(DEFAULT_CONFIG);
+  const [remoteDb, setRemoteDb] = useState(null);
+  const [lb, setLb] = useState([]);
+  const [name, setName] = useState("");
+  const [adminOk, setAdminOk] = useState(false);
+
+  // 세션 상태
+  const [sc, setSc] = useState(DEFAULT_CONFIG);   // 게임 시작 시점 설정 스냅샷
+  const [days, setDays] = useState([]);           // 이번 세션의 날짜들 (중복 없음)
+  const [i, setI] = useState(0);
+  const [cap, setCap] = useState(START_CAPITAL);
+  const [botCaps, setBotCaps] = useState({});
+  const [bought, setBought] = useState(false);
+  const [dir, setDir] = useState(null);
+  const [size, setSize] = useState(50);
+  const [res, setRes] = useState(null);
+  const [nRounds, setNRounds] = useState(0);
+  const [savedMsg, setSavedMsg] = useState("");
+
+  useEffect(()=>{
+    Store.on("config", v => { if(v) setCfg({...DEFAULT_CONFIG, ...v, bots:{...DEFAULT_CONFIG.bots, ...(v.bots||{})}}); });
+    Store.on("database", v => setRemoteDb(validDb(v) ? v : null));
+    Store.on("leaderboard", v => {
+      const arr = v ? Object.values(v) : [];
+      arr.sort((a,b)=>b.capital-a.capital);
+      setLb(arr.slice(0,100));
+    });
+  },[]);
+
+  const db = remoteDb || SAMPLE_DB;
+  const activeBots = useMemo(()=>Object.keys(BOT_META).filter(b=>cfg.bots[b]), [cfg]);
+  const day = days[i];
+
+  /* ---------- 진행 ---------- */
+  function start(){
+    if(!name.trim()) return;
+    const snapshot = JSON.parse(JSON.stringify(cfg));
+    const n = Math.max(1, Math.min(snapshot.roundsPerSession, db.length));
+    setSc(snapshot);
+    setDays(shuffle(db).slice(0, n));
+    setI(0); setCap(START_CAPITAL); setNRounds(0);
+    const bc={}; Object.keys(BOT_META).filter(b=>snapshot.bots[b]).forEach(b=>bc[b]=START_CAPITAL);
+    setBotCaps(bc);
+    setBought(false); setDir(null); setSize(50); setRes(null);
+    setView("play");
+  }
+
+  function buyInfo(){
+    if(bought || cap < sc.infoPrice) return;
+    setCap(c => c - sc.infoPrice);
+    setBought(true);
+  }
+
+  function settle(pDir, pSize){
+    const r = day.kospi_return;
+    const bet = cap * pSize/100;
+    const pnl = pDir * bet * r;
+    const newCap = cap + pnl;
+
+    const bres = {}; const nb = {...botCaps};
+    Object.keys(nb).forEach(b=>{
+      const bd = day.bots[b];
+      const buys = sc.infoFeature && sc.botsCanBuy && bd.informed.buy && nb[b] > sc.infoPrice;
+      const d = buys ? bd.informed : bd.base;
+      const fee = buys ? sc.infoPrice : 0;
+      const bbet = (nb[b]-fee) * d.size/100;
+      const bpnl = d.dir * bbet * r - fee;
+      nb[b] += bpnl;
+      bres[b] = { dir:d.dir, size:d.size, rationale:d.rationale, buys, pnl:bpnl, cap:nb[b] };
+    });
+
+    setBotCaps(nb); setCap(newCap); setNRounds(n=>n+1);
+    setRes({ r, pDir, pSize, bet, pnl, fee: bought? sc.infoPrice:0, bres });
+    setView("result");
+  }
+
+  function next(){
+    if(i+1 >= days.length || cap <= 0){ finish(); return; }
+    setI(x=>x+1); setBought(false); setDir(null); setSize(50); setRes(null);
+    setView("play");
+  }
+
+  function finish(){
+    if(name.trim() && nRounds>0){
+      Store.push("leaderboard", { name:name.trim().slice(0,20), capital:Math.round(cap),
+        ret:(cap-START_CAPITAL)/START_CAPITAL, rounds:nRounds, ts:Date.now() });
+    }
+    setView("final");
+  }
+
+  /* ---------- 관리자 ---------- */
+  function saveCfg(next){
+    setCfg(next); Store.set("config", next);
+    setSavedMsg("저장됨 ✓"); setTimeout(()=>setSavedMsg(""), 1500);
+  }
+
+  /* ---------- 공용 부품 ---------- */
+  const Headlines = ({items}) => <ol className="headlines">{items.map((h,k)=><li key={k}>{h}</li>)}</ol>;
+  const dirLabel = d => d===1? "매수(Long)" : d===-1? "매도(Short)" : "관망";
+
+  const Leaderboard = ({rows, limit}) => rows.length===0 ? <p className="muted" style={{fontSize:13}}>아직 기록이 없습니다. 첫 번째 트레이더가 되어 보세요.</p> :
+    <table><thead><tr><th style={{width:36}}>#</th><th>이름</th><th className="r">최종 자본</th><th className="r">수익률</th></tr></thead>
+      <tbody>{rows.slice(0,limit).map((e,k)=>
+        <tr key={k} className={e.name===name.trim()? "me":""}>
+          <td className="tnum muted">{k+1}</td><td>{e.name}</td>
+          <td className={"r tnum "+(e.capital>=START_CAPITAL?"up":"down")}><b>{KRW(e.capital)}</b></td>
+          <td className={"r tnum "+cls(e.ret)}>{pctf(e.ret||0)}</td>
+        </tr>)}
+      </tbody></table>;
+
+  /* ================= 화면 ================= */
+
+  const TopBar = () =>
+    <div className="topbar">
+      <div>
+        <span className="brand">조간 트레이더</span>
+        <span className="sub" style={{marginLeft:10}}>Morning Paper Trader · {INDEX_NAME} × 효율적 시장가설</span>
+      </div>
+      <div style={{display:"flex", alignItems:"center", gap:14}}>
+        {(view==="play"||view==="result") &&
+          <span className="tnum" style={{fontSize:13}}>{name} · <b className={cap>=START_CAPITAL?"up":"down"} style={{color:cap>=START_CAPITAL?"#ff8a80":"#9dc1ff"}}>{KRW(cap)}</b></span>}
+        {view.startsWith("admin")
+          ? <button className="link" onClick={()=>setView("lobby")}>학생 화면으로</button>
+          : <button className="link" onClick={()=>setView(adminOk?"admin":"adminLogin")}>관리자</button>}
+      </div>
+    </div>;
+
+  const DemoBanner = () => DEMO &&
+    <div className="notice" style={{maxWidth:1000, margin:"14px auto 0", marginLeft:"auto", marginRight:"auto"}}>
+      <b>데모 모드</b> — firebaseConfig가 아직 설정되지 않았습니다. 리더보드·설정이 이 브라우저에만 저장됩니다.
+      index.html 상단에 Firebase 설정을 붙여넣으면 학급 전체 실시간 공유가 켜집니다.
+    </div>;
+
+  /* ----- 로비 ----- */
+  if(view==="lobby") return <div><TopBar/><DemoBanner/>
+    <div className="wrap narrow fade">
+      <div className="card">
+        <h1 className="serif" style={{fontSize:30, fontWeight:900, lineHeight:1.25, letterSpacing:"-1px"}}>
+          오늘 아침 신문만 보고,<br/>{INDEX_NAME}에 베팅할 수 있을까?
+        </h1>
+        <p className="muted" style={{marginTop:12, fontSize:14}}>
+          매 라운드, 실제 과거 어느 거래일의 <b>개장 전 거시경제 헤드라인</b>이 주어집니다 (날짜는 비공개).
+          그날 {INDEX_NAME} 지수가 오를지 내릴지 방향과 베팅 규모를 정하세요. 같은 정보를 본 AI 봇들과 경쟁합니다.
+        </p>
+        <div className="kv">
+          <div className="box"><div className="k">시작 자본</div><div className="v tnum">{KRW(START_CAPITAL)}</div></div>
+          <div className="box"><div className="k">라운드</div><div className="v">{Math.min(cfg.roundsPerSession, db.length)}회 · 날짜 중복 없음</div></div>
+          <div className="box"><div className="k">정보 시장</div><div className="v">{cfg.infoFeature? `내일 조간 ${KRW(cfg.infoPrice)}` : "꺼짐"}</div></div>
+          <div className="box"><div className="k">AI 경쟁자</div><div className="v">{activeBots.length? activeBots.map(b=>BOT_META[b].name).join(" · ") : "없음"}</div></div>
+        </div>
+        <div style={{display:"flex", gap:8}}>
+          <input type="text" placeholder="이름 또는 닉네임" value={name} maxLength={20}
+            onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&start()} />
+          <button className="btn" style={{width:"auto", padding:"12px 26px"}} disabled={!name.trim()} onClick={start}>거래 시작</button>
+        </div>
+        <details style={{marginTop:16, fontSize:13.5}}>
+          <summary style={{cursor:"pointer", fontWeight:700}}>게임 방법 (30초 설명)</summary>
+          <ol style={{margin:"10px 0 0 18px", color:"var(--muted)"}}>
+            <li>조간 헤드라인을 읽고 <b className="up">매수 ▲</b> 또는 <b className="down">매도 ▼</b>를 고른다.</li>
+            <li>자본의 몇 %를 걸지 정한다. 확신이 없으면 적게, 아예 관망도 전략.</li>
+            {cfg.infoFeature && <li>{KRW(cfg.infoPrice)}을 내면 <b>내일 조간</b>을 미리 볼 수 있다. 낼 가치가 있는지는 스스로 판단.</li>}
+            <li>실제 그날의 {INDEX_NAME} 수익률로 손익이 정산된다. 봇들의 판단 근거도 함께 공개.</li>
+          </ol>
+        </details>
+        <h3 className="mini">Leaderboard</h3>
+        <Leaderboard rows={lb} limit={5} />
+        <p className="footer-note">실제 과거 {INDEX_NAME} 데이터 기반 교육용 시뮬레이션입니다. 투자 자문이 아닙니다.</p>
+      </div>
+    </div></div>;
+
+  /* ----- 관리자 로그인 ----- */
+  if(view==="adminLogin") return <div><TopBar/>
+    <div className="modal-bg" onClick={()=>setView("lobby")}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h3 className="serif" style={{fontWeight:900, fontSize:20, marginBottom:12}}>관리자 로그인</h3>
+        <input type="password" placeholder="비밀번호" autoFocus
+          onKeyDown={e=>{ if(e.key==="Enter"){ if(e.target.value===ADMIN_PASSCODE){ setAdminOk(true); setView("admin"); } else alert("비밀번호가 올바르지 않습니다."); } }} />
+        <p className="footer-note">비밀번호는 index.html 상단 ADMIN_PASSCODE에서 변경합니다.</p>
+        <button className="textbtn" style={{marginTop:8}} onClick={()=>setView("lobby")}>← 돌아가기</button>
+      </div>
+    </div></div>;
+
+  /* ----- 관리자 콘솔 ----- */
+  if(view==="admin"){
+    const Row = ({t,d,children}) => <div className="row"><div><div className="t">{t}</div>{d&&<div className="d">{d}</div>}</div>{children}</div>;
+    const Switch = ({on,set}) => <label className="switch"><input type="checkbox" checked={on} onChange={e=>set(e.target.checked)} /><span className="track"></span></label>;
+    return <div><TopBar/><DemoBanner/>
+      <div className="wrap fade" style={{maxWidth:760}}>
+        <div className="admin-h">
+          <h1>편집국 <span className="muted" style={{fontSize:14, fontWeight:400}}>관리자 콘솔</span></h1>
+          <span className="saveflash">{savedMsg || (DEMO? "데모 모드" : "실시간 공유 중")}</span>
+        </div>
+        <p className="muted" style={{fontSize:13, marginBottom:16}}>설정은 저장 즉시 모든 학생에게 반영되며, 진행 중인 게임에는 영향을 주지 않고 <b>다음 게임 시작부터</b> 적용됩니다.</p>
+
+        <div className="card tight" style={{marginBottom:16}}>
+          <p className="section-t">① AI 경쟁자</p>
+          {Object.keys(BOT_META).map(b=>
+            <Row key={b} t={<span><span className={"badge "+BOT_META[b].cls}>{BOT_META[b].name}</span></span>} d={BOT_META[b].desc}>
+              <Switch on={cfg.bots[b]} set={v=>saveCfg({...cfg, bots:{...cfg.bots,[b]:v}})} />
+            </Row>)}
+        </div>
+
+        <div className="card tight" style={{marginBottom:16}}>
+          <p className="section-t">② 정보 시장 <span style={{textTransform:"none", letterSpacing:0}}>(Grossman-Stiglitz)</span></p>
+          <Row t="내일 조간 구매 기능" d="학생이 돈을 내고 다음 날 아침 헤드라인을 미리 볼 수 있게 합니다.">
+            <Switch on={cfg.infoFeature} set={v=>saveCfg({...cfg, infoFeature:v})} />
+          </Row>
+          {cfg.infoFeature && <div className="subrows">
+            <Row t="정보 가격" d="기본 ₩10,000 — 완전한 정보라도 기대이익과 비슷한 수준의 가격입니다.">
+              <input type="number" step="1000" min="0" style={{width:120, textAlign:"right"}} value={cfg.infoPrice}
+                onChange={e=>saveCfg({...cfg, infoPrice:Math.max(0, +e.target.value||0)})} />
+            </Row>
+            <Row t="공개 모드" d="켜면 시황 기사가 포함되어 사실상 정답이 노출됩니다 (내부정보 실험). 기본은 노이즈 모드.">
+              <Switch on={cfg.revealMode} set={v=>saveCfg({...cfg, revealMode:v})} />
+            </Row>
+            <Row t="봇의 정보 구매 허용" d="고급 봇은 비용-편익을 따져 살지 말지 스스로 판단합니다.">
+              <Switch on={cfg.botsCanBuy} set={v=>saveCfg({...cfg, botsCanBuy:v})} />
+            </Row>
+          </div>}
+        </div>
+
+        <div className="card tight" style={{marginBottom:16}}>
+          <p className="section-t">③ 게임 규칙</p>
+          <Row t="세션당 라운드 수" d={`현재 데이터 ${db.length}일 중에서 중복 없이 추출됩니다.`}>
+            <input type="number" min="1" max="50" style={{width:90, textAlign:"right"}} value={cfg.roundsPerSession}
+              onChange={e=>saveCfg({...cfg, roundsPerSession:Math.max(1, Math.min(50, +e.target.value||1))})} />
+          </Row>
+        </div>
+
+        <div className="card tight" style={{marginBottom:16}}>
+          <p className="section-t">④ 데이터베이스</p>
+          <Row t={"현재 데이터: " + (remoteDb? `업로드본 ${remoteDb.length}일` : `내장 샘플 ${SAMPLE_DB.length}일`)}
+               d="수집 스크립트(collect_from_gdelt.py) → generate_bots.py로 만든 game_database.json을 업로드하세요 (100일 이상 권장). 업로드 즉시 모든 학생에게 적용됩니다.">
+          </Row>
+          <div style={{display:"flex", gap:12, alignItems:"center", paddingTop:10}}>
+            <input type="file" accept=".json" onChange={e=>{
+              const f=e.target.files && e.target.files[0]; if(!f) return;
+              const rd=new FileReader();
+              rd.onload=()=>{ try{
+                  const data=JSON.parse(rd.result);
+                  if(!validDb(data)) throw 0;
+                  Store.set("database", data).then(()=>alert(`업로드 완료: ${data.length}일`));
+                }catch(err){ alert("game_database.json 형식이 아닙니다."); } };
+              rd.readAsText(f);
+            }} />
+            {remoteDb && <button className="textbtn danger" onClick={()=>{ if(confirm("업로드된 데이터를 삭제하고 샘플로 되돌릴까요?")) Store.remove("database"); }}>샘플로 되돌리기</button>}
+          </div>
+        </div>
+
+        <div className="card tight">
+          <p className="section-t">⑤ 리더보드 <span style={{textTransform:"none", letterSpacing:0}}>({lb.length}명)</span></p>
+          <div style={{maxHeight:300, overflowY:"auto", marginTop:6}}><Leaderboard rows={lb} limit={100} /></div>
+          <div style={{marginTop:12}}>
+            <button className="textbtn danger" onClick={()=>{ if(confirm("리더보드 전체를 삭제할까요? 되돌릴 수 없습니다.")) Store.remove("leaderboard"); }}>리더보드 초기화</button>
+          </div>
+        </div>
+      </div></div>;
+  }
+
+  /* ----- 라운드 ----- */
+  if(view==="play" && day) return <div><TopBar/>
+    <div className="wrap fade">
+      <div className="grid play">
+        <div className="card">
+          <div className="masthead">
+            <div className="edition"><span>Global Macro Wire · Reuters/CNBC/AP</span><span>날짜 비공개</span></div>
+            <h2>오늘의 조간</h2>
+            <div style={{fontSize:11.5, color:"var(--muted)"}}>개장 전(09:00 이전) 배포된 거시경제 헤드라인</div>
+          </div>
+          <Headlines items={day.headlines} />
+          {sc.infoFeature && <div>
+            <div className="cutline"><span>INFORMATION MARKET</span></div>
+            {!bought
+              ? <div>
+                  <button className="btn ghost" disabled={cap < sc.infoPrice} onClick={buyInfo}>
+                    📰 내일 조간 미리보기 구매 — {KRW(sc.infoPrice)}
+                  </button>
+                  <p className="footer-note">비용은 베팅 여부와 무관하게 즉시 차감되며 환불되지 않습니다. 낼 가치가 있을까요?</p>
+                </div>
+              : <div className="tomorrow">
+                  <div className="thead">
+                    <span>내일의 조간 <span className="muted" style={{fontWeight:400, fontSize:11}}>({sc.revealMode? "전체판":"시황기사 제외판"})</span></span>
+                    <span className="up" style={{fontSize:12, fontWeight:800}}>−{KRW(sc.infoPrice)} 결제됨</span>
+                  </div>
+                  <Headlines items={sc.revealMode? day.next_day_reveal : day.next_day_noisy} />
+                </div>}
+          </div>}
+        </div>
+
+        <div style={{display:"grid", gap:14}}>
+          <div className="card">
+            <div style={{display:"flex", justifyContent:"space-between", marginBottom:14}}>
+              <span className="progress">Round {i+1} / {days.length}</span>
+              <span className="progress tnum">가용자본 {KRW(cap)}</span>
+            </div>
+            <p className="step"><b>STEP 1</b> · 방향</p>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16}}>
+              <button className={"btn long"+(dir===1?" on":"")} onClick={()=>setDir(1)}>매수 ▲</button>
+              <button className={"btn short"+(dir===-1?" on":"")} onClick={()=>setDir(-1)}>매도 ▼</button>
+            </div>
+            <p className="step"><b>STEP 2</b> · 베팅 규모 — <span className="tnum" style={{color:"var(--ink)"}}>{size}% = {KRW(cap*size/100)}</span></p>
+            <input type="range" min="0" max="100" step="5" value={size} onChange={e=>setSize(+e.target.value)} />
+            <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)", marginBottom:16}}>
+              <span>0%</span><span>50%</span><span>100%</span>
+            </div>
+            <p className="step"><b>STEP 3</b> · 주문</p>
+            <button className="btn" disabled={!dir || size===0} onClick={()=>settle(dir,size)}>주문 체결</button>
+            <div style={{textAlign:"center", marginTop:10}}>
+              <button className="textbtn" onClick={()=>settle(0,0)}>이번 라운드 관망 (베팅 안 함)</button>
+            </div>
+          </div>
+          {Object.keys(botCaps).length>0 && <div className="card tight" style={{fontSize:12.5, color:"var(--muted)"}}>
+            <b style={{color:"var(--ink)"}}>AI 경쟁자</b> — 같은 헤드라인으로 이미 주문했습니다. 결과에서 근거가 공개됩니다.
+            <div style={{marginTop:8}}>
+              {Object.keys(botCaps).map(b=><span key={b} className="pill"><span className={"badge "+BOT_META[b].cls} style={{marginRight:6}}>{BOT_META[b].name}</span><span className="tnum">{KRW(botCaps[b])}</span></span>)}
+            </div>
+          </div>}
+        </div>
+      </div>
+    </div></div>;
+
+  /* ----- 결과 ----- */
+  if(view==="result" && res && day){
+    const hit = res.pDir!==0 && res.pDir*res.r>0;
+    return <div><TopBar/>
+      <div className="wrap fade">
+        <div className="card hero">
+          <div className="label">당일 {INDEX_NAME} 수익률</div>
+          <div className={"big "+cls(res.r)}>{pctf(res.r)}</div>
+          {res.pDir!==0
+            ? <div className={"verdict "+(hit? "hit"+(res.pDir===-1?" short":"") : "miss")}>{hit? "방향 적중":"방향 빗나감"}</div>
+            : <div className="verdict miss">관망</div>}
+          <div style={{marginTop:14, fontSize:14}}>
+            나의 선택: <b>{dirLabel(res.pDir)}</b>{res.pDir!==0 && <> · {res.pSize}% ({KRW(res.bet)})</>}{res.fee>0 && <> · 정보비용 {KRW(res.fee)}</>}
+          </div>
+          <div className={"tnum "+cls(res.pnl - 0.000001)} style={{fontSize:26, fontWeight:900, marginTop:2}}>{signKRW(res.pnl)}</div>
+          <div className="muted tnum" style={{fontSize:13}}>잔고 {KRW(cap)}</div>
+        </div>
+
+        {Object.keys(res.bres).length>0 && <div className="grid bots" style={{marginTop:16}}>
+          {Object.keys(res.bres).map(b=>{ const x=res.bres[b]; return (
+            <div key={b} className="card tight">
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
+                <span className={"badge "+BOT_META[b].cls}>{BOT_META[b].name}</span>
+                <b className={"tnum "+cls(x.pnl-0.000001)}>{signKRW(x.pnl)}</b>
+              </div>
+              <div style={{fontWeight:800, fontSize:14}}>{dirLabel(x.dir)}{x.dir!==0 && ` · ${x.size}%`}{x.buys && <span style={{marginLeft:6, fontWeight:600, fontSize:11.5, color:"#5b3aa6"}}>📰 정보구매</span>}</div>
+              <p className="muted" style={{fontSize:12.5, marginTop:6}}>“{x.rationale}”</p>
+              <div className="muted tnum" style={{fontSize:11.5, marginTop:8}}>잔고 {KRW(x.cap)}</div>
+            </div>);})}
+        </div>}
+
+        <button className="btn" style={{marginTop:18}} onClick={next}>
+          {(i+1>=days.length || cap<=0)? "최종 결과 보기" : "다음 거래일 →"}
+        </button>
+      </div></div>;
+  }
+
+  /* ----- 최종 ----- */
+  if(view==="final"){
+    const rows = [{name:name.trim()+" (나)", cap}, ...Object.keys(botCaps).map(b=>({name:BOT_META[b].name, cap:botCaps[b]}))]
+      .sort((a,b)=>b.cap-a.cap);
+    return <div><TopBar/>
+      <div className="wrap narrow fade">
+        <div className="card">
+          <h2 className="serif" style={{fontSize:24, fontWeight:900, marginBottom:4}}>세션 종료</h2>
+          <p className="muted" style={{fontSize:13, marginBottom:14}}>{cap<=0? "자본이 바닥났습니다 — 베팅 규모 관리도 실력입니다." : `${nRounds}라운드 완료.`}</p>
+          <table>
+            <thead><tr><th>순위</th><th>참가자</th><th className="r">최종 자본</th><th className="r">수익률</th></tr></thead>
+            <tbody>{rows.map((e,k)=>
+              <tr key={k} className={e.name.endsWith("(나)")? "me":""}>
+                <td className="tnum">{k+1}</td><td>{e.name}</td>
+                <td className="r tnum"><b>{KRW(e.cap)}</b></td>
+                <td className={"r tnum "+cls(e.cap-START_CAPITAL)}>{pctf((e.cap-START_CAPITAL)/START_CAPITAL)}</td>
+              </tr>)}
+            </tbody>
+          </table>
+          <p className="footer-note">{DEMO? "데모 모드: 기록이 이 브라우저에만 저장되었습니다." : "기록이 학급 리더보드에 등록되었습니다."}</p>
+          <h3 className="mini">전체 리더보드</h3>
+          <Leaderboard rows={lb} limit={15} />
+          <button className="btn" style={{marginTop:18}} onClick={()=>setView("lobby")}>다시 도전</button>
+        </div>
+      </div></div>;
+  }
+
+  return <div><TopBar/><div className="wrap"><p className="muted">불러오는 중…</p></div></div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
