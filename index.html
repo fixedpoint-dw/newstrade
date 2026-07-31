@@ -524,7 +524,8 @@ en: {
   kvCapital:"Starting capital", kvRounds:"Rounds", kvRoundsVal:n=>`${n} · no repeated days`,
   kvInfo:"Information market", kvInfoOn:p=>`Tomorrow's paper for ${p}`, kvInfoOff:"Off",
   kvBots:"AI benchmarks", kvBotsNone:"None",
-  namePh:"Name or nickname", joinClass:"Join class game", solo:"Solo practice",
+  namePh:"Name or nickname", nameTaken:"That name is already taken — please choose another.",
+  joinClass:"Join class game", solo:"Solo practice",
   howto:"How to play (30 seconds)",
   howto1:"Read the headlines, then drag the position bar — right of center = long, left = short, center = sit out.", long:"Long", short:"Short",
   howto2:"Distance from center = bet size. Past ±100% you are trading on margin (leverage).",
@@ -606,7 +607,8 @@ ko: {
   kvCapital:"시작 자본", kvRounds:"라운드", kvRoundsVal:n=>`${n}회 · 날짜 중복 없음`,
   kvInfo:"정보 시장", kvInfoOn:p=>`내일 조간 ${p}`, kvInfoOff:"꺼짐",
   kvBots:"AI 벤치마크", kvBotsNone:"없음",
-  namePh:"이름 또는 닉네임", joinClass:"수업 게임 참가", solo:"혼자 연습하기",
+  namePh:"이름 또는 닉네임", nameTaken:"이미 사용 중인 이름입니다 — 다른 이름을 골라주세요.",
+  joinClass:"수업 게임 참가", solo:"혼자 연습하기",
   howto:"게임 방법 (30초 설명)",
   howto1:"조간 헤드라인을 읽고 포지션 바를 움직인다 — 가운데 기준 오른쪽은 매수(Long), 왼쪽은 매도(Short), 가운데는 관망.", long:"매수", short:"매도",
   howto2:"중앙에서 멀수록 베팅이 커진다. ±100%를 넘으면 레버리지(증거금 거래)다.",
@@ -807,6 +809,10 @@ function App(){
 
   function joinClass(){
     if(!name.trim() || conn!=="online") return;
+    const nm = name.trim().slice(0,20);
+    const taken = Object.entries(RP).some(([id2,p]) =>
+      id2 !== pid && p && p.name && p.name.trim().toLowerCase() === nm.toLowerCase());
+    if(taken){ alert(t.nameTaken); return; }
     lsSet("mpt_name", name.trim());
     const existing = RP[pid];
     const inLobby = !RS || RS.phase==="lobby" || RS.phase==="finished" || !RS.phase;
