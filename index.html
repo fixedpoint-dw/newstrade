@@ -549,6 +549,8 @@ en: {
   startGame:"Start game", endTurn:"End turn now",
   nextRound:"Next round →", endGame:"End game & save scores", resetRoom:"Reset room",
   resetRoomC:"Reset the room? Capitals return to the start and everyone waits in the lobby.",
+  clearPlayers:"Remove all players", clearPlayersC:"Remove every player from the room? They can rejoin from the lobby.",
+  offlineTag:"offline",
   needPlayers:"Waiting for players to join…", colBet:"Bet",
   noBet:"—", botsRow:"AI benchmark",
   rInfo:"Sell tomorrow's paper", rInfoD:"Players can pay to preview the next morning's headlines.",
@@ -629,6 +631,8 @@ ko: {
   startGame:"게임 시작", endTurn:"턴 즉시 종료",
   nextRound:"다음 라운드 →", endGame:"게임 종료·기록 저장", resetRoom:"룸 초기화",
   resetRoomC:"룸을 초기화할까요? 자본이 초기화되고 모두 대기실로 돌아갑니다.",
+  clearPlayers:"플레이어 전원 내보내기", clearPlayersC:"모든 플레이어를 룸에서 내보낼까요? 로비에서 다시 참가할 수 있습니다.",
+  offlineTag:"오프라인",
   needPlayers:"플레이어 입장을 기다리는 중…", colBet:"베팅",
   noBet:"—", botsRow:"AI 벤치마크",
   rInfo:"내일 조간 구매 기능", rInfoD:"학생이 돈을 내고 다음 날 아침 헤드라인을 미리 볼 수 있게 합니다.",
@@ -776,6 +780,13 @@ function App(){
                   : {pos:0, bought:false});
   }, [RS && RS.round, RS && RS.phase==="betting"]);
 
+  const wasInRef = useRef(false);
+  useEffect(()=>{
+    if(view!=="class"){ wasInRef.current = false; return; }
+    if(RP[pid]) wasInRef.current = true;
+    else if(wasInRef.current){ wasInRef.current = false; setView("lobby"); }
+  }, [view, RP]);
+
   const pickLang = L => { setLang(L); lsSet("mpt_lang", L); };
   const activeBots = useMemo(()=>Object.keys(BOT_META).filter(b=>cfg.bots[b]), [cfg]);
   const usingSample = !dbs.en && !dbs.ko;
@@ -806,6 +817,10 @@ function App(){
       Store.set(`room/players/${pid}`, { name:name.trim().slice(0,20), lang, joinedAt:Date.now(),
         capital:START_CAPITAL, playing: inLobby });
     }
+    fbReady.then(db=>{ if(!db) return;
+      const ref = db.ref(FB_PATH+`/room/players/${pid}/online`);
+      ref.set(true); ref.onDisconnect().set(false);
+    });
     setView("class");
   }
   function leaveRoom(){ Store.remove(`room/players/${pid}`); setView("lobby"); }
@@ -908,6 +923,12 @@ function App(){
     Store.set("room/state", { phase:"lobby" });
   }
 
+  function hostClearPlayers(){
+    Store.remove("room/bets"); Store.remove("room/results");
+    Store.remove("room/players");
+    Store.set("room/state", { phase:"lobby" });
+  }
+
   // host automation (host tab must stay open):
   //  - betting: settle on timer expiry, or ~1.5s after every active player has bet
   //  - reveal: auto-advance after revealSeconds (except after the last round)
@@ -915,7 +936,7 @@ function App(){
     if(!adminOk || !RS){ allInRef.current = null; return; }
     if(RS.phase==="betting"){
       if(RS.turnEndsAt && now() > RS.turnEndsAt){ hostSettle(); return; }
-      const act = Object.entries(RP).filter(([,p])=>p.playing && !p.busted);
+      const act = Object.entries(RP).filter(([,p])=>p.playing && !p.busted && p.online!==false);
       const bets = RB[RS.round]||{};
       const allIn = act.length>0 && act.every(([id2])=>{ const b=bets[id2]; return b && (b.pos!=null || b.dir!=null); });
       if(allIn){
@@ -1175,7 +1196,7 @@ function App(){
                 <tbody>{Object.entries(RP).filter(([,p])=>p.playing).sort((a,b)=>b[1].capital-a[1].capital).map(([id2,p])=>{
                   const b = bets[id2]; const pr = result && result.players && result.players[id2];
                   const betTxt = b ? ((b.dir===1?"▲":b.dir===-1?"▼":"·")+" "+(b.size||0)+"%"+(b.bought?" 📰":"")) : t.noBet;
-                  return <tr key={id2}><td>{p.busted&&"💀 "}{p.name}</td>
+                  return <tr key={id2}><td>{p.busted&&"💀 "}{p.name}{p.online===false && <span className="muted" style={{fontSize:11}}> ({t.offlineTag})</span>}</td>
                     <td className="r tnum">{betTxt}</td>
                     <td className={"r tnum "+((phase==="reveal"&&pr)? cls(pr.pnl-0.000001):"")}>
                       {phase==="reveal" ? (pr? signKRW(pr.pnl) : "—") : KRW(p.capital)}</td></tr>;})}
@@ -1233,6 +1254,7 @@ function App(){
               {(phase==="betting" || (phase==="reveal" && (RS.round+1)<RS.total)) &&
                 <button className="btn sm ghost" onClick={()=>{ if(confirm(t.endGameC)) hostEnd(); }}>{t.endGame}</button>}
               {phase!=="lobby"    && <button className="textbtn danger" onClick={()=>{ if(confirm(t.resetRoomC)) hostReset(); }}>{t.resetRoom}</button>}
+              {Object.keys(RP).length>0 && <button className="textbtn danger" onClick={()=>{ if(confirm(t.clearPlayersC)) hostClearPlayers(); }}>{t.clearPlayers}</button>}
             </div>
           </div>
           <div className="row">
@@ -1252,7 +1274,7 @@ function App(){
                 <tbody>{Object.entries(RP).sort((a,b)=>b[1].capital-a[1].capital).map(([id2,p])=>{
                   const b = bets[id2];
                   return <tr key={id2}>
-                    <td>{p.name}{p.busted && " 💀"}{!p.playing && <span className="muted"> ⌛</span>}</td>
+                    <td>{p.name}{p.busted && " 💀"}{p.online===false && <span className="muted" style={{fontSize:11}}> ({t.offlineTag})</span>}{!p.playing && <span className="muted"> ⌛</span>}</td>
                     <td className="r tnum">{KRW(p.capital)}</td>
                     <td className="r tnum">{phase==="betting" ? (b ? ((b.dir===1?"▲":b.dir===-1?"▼":"·")+" "+(b.size||0)+"%"+(b.bought?" 📰":"")) : t.noBet) : ""}</td>
                   </tr>;})}
