@@ -1453,8 +1453,18 @@ function App(){
     if(phase==="reveal" && d){
       const result = RR[RS.round];
       const mine = result && result.players && result.players[pid];
+      const remainR = RS.revealEndsAt ? RS.revealEndsAt - now() : 0;
+      const fracR = RS.revealEndsAt ? Math.max(0, Math.min(1, remainR / ((cfg.revealSeconds||30)*1000))) : 0;
+      const showBar = RS.revealEndsAt && (RS.round+1) < RS.total && remainR > 0;
       return <div><TopBar/>
         <div className="wrap fade">
+          {showBar && <div className="card tight" style={{marginBottom:14, display:"flex", alignItems:"center", gap:14}}>
+            <span className="progress">{t.round} {(RS.round||0)+1} / {RS.total}</span>
+            <div style={{flex:1, height:8, background:"#e8e3d4", borderRadius:99, overflow:"hidden"}}>
+              <div style={{width:(fracR*100)+"%", height:"100%", background: remainR<10000? "var(--up)":"var(--ink)", transition:"width .4s linear"}}></div>
+            </div>
+            <b className="tnum" style={{fontSize:16, color: remainR<10000? "var(--up)":"var(--ink)"}}>{mmss(remainR)}</b>
+          </div>}
           <div className="card hero">
             <div className="label">{t.resultLabel} · {t.round} {(RS.round||0)+1}/{RS.total}</div>
             <div className={"big "+cls(result? result.r:0)}>{result? pctf(result.r):"…"}</div>
